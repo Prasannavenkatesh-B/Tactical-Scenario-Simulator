@@ -1,0 +1,315 @@
+tss_protocol_version: "1.0"
+
+unit_conventions:
+  angle: "degrees"
+  distance: "km"
+  speed: "knots"
+  time: "seconds"
+  altitude: "km"
+
+observation_fields:
+  air:
+    - tss_field: "pos_x"
+      our_index: 0
+      units: "km"
+      range: [0.0, 100.0]
+      description: "Entity continuous X coordinate"
+    - tss_field: "pos_y"
+      our_index: 1
+      units: "km"
+      range: [0.0, 100.0]
+      description: "Entity continuous Y coordinate"
+    - tss_field: "pos_z"
+      our_index: 2
+      units: "km"
+      range: [0.0, 15.0]
+      description: "Entity altitude / elevation Z coordinate"
+    - tss_field: "speed"
+      our_index: 3
+      units: "knots"
+      range: [0.0, 1166.0]
+      description: "True airspeed in knots (max ~600 m/s / Mach 1.8)"
+    - tss_field: "heading"
+      our_index: 4
+      units: "degrees"
+      range: [0.0, 360.0]
+      description: "Current vehicle compass heading in degrees"
+    - tss_field: "heading_off"
+      our_index: 5
+      units: "degrees"
+      range: [0.0, 180.0]
+      description: "Absolute heading-off angle to closest detected adversary"
+    - tss_field: "aspect_angle"
+      our_index: 6
+      units: "degrees"
+      range: [0.0, 180.0]
+      description: "Aspect angle to closest detected adversary"
+    - tss_field: "antenna_train_angle"
+      our_index: 7
+      units: "degrees"
+      range: [0.0, 180.0]
+      description: "Antenna train angle (ATA) to primary contact"
+    - tss_field: "distance_to_opponent"
+      our_index: 8
+      units: "km"
+      range: [0.0, 100.0]
+      description: "Line-of-sight distance to closest opponent"
+    - tss_field: "cannon_ammo"
+      our_index: 9
+      units: "count"
+      range: [0.0, 500.0]
+      description: "Remaining internal gun/cannon ammunition rounds"
+    - tss_field: "rocket_ammo"
+      our_index: 10
+      units: "count"
+      range: [0.0, 8.0]
+      description: "Remaining air-to-air missiles / rockets"
+    - tss_field: "rocket_ready"
+      our_index: 11
+      units: "flag"
+      range: [0.0, 1.0]
+      description: "Missile weapon lock and guidance seeker ready flag"
+    - tss_field: "is_shooting"
+      our_index: 12
+      units: "flag"
+      range: [0.0, 1.0]
+      description: "Active engagement trigger or weapon firing state"
+
+  ground:
+    - tss_field: "pos_x"
+      our_index: 0
+      units: "km"
+      range: [0.0, 100.0]
+      description: "Ground vehicle continuous X coordinate"
+    - tss_field: "pos_y"
+      our_index: 1
+      units: "km"
+      range: [0.0, 100.0]
+      description: "Ground vehicle continuous Y coordinate"
+    - tss_field: "speed"
+      our_index: 2
+      units: "knots"
+      range: [0.0, 58.3]
+      description: "Ground speed in knots (max ~30 m/s / 108 km/h)"
+    - tss_field: "heading"
+      our_index: 3
+      units: "degrees"
+      range: [0.0, 360.0]
+      description: "Current vehicle chassis heading in degrees"
+    - tss_field: "elevation"
+      our_index: 4
+      units: "km"
+      range: [0.0, 5.0]
+      description: "Local terrain surface elevation"
+    - tss_field: "antenna_train_angle"
+      our_index: 5
+      units: "degrees"
+      range: [0.0, 180.0]
+      description: "Sensor/turret angle relative to closest target"
+    - tss_field: "distance_to_opponent"
+      our_index: 6
+      units: "km"
+      range: [0.0, 100.0]
+      description: "Distance to closest detected adversary ground or air contact"
+    - tss_field: "ammo"
+      our_index: 7
+      units: "count"
+      range: [0.0, 100.0]
+      description: "Remaining primary vehicle ammunition rounds"
+    - tss_field: "sensor_range"
+      our_index: 8
+      units: "km"
+      range: [0.0, 50.0]
+      description: "Active electro-optical / radar sensor horizon"
+
+  sea:
+    - tss_field: "pos_x"
+      our_index: 0
+      units: "km"
+      range: [0.0, 100.0]
+      description: "Naval vessel continuous X coordinate"
+    - tss_field: "pos_y"
+      our_index: 1
+      units: "km"
+      range: [0.0, 100.0]
+      description: "Naval vessel continuous Y coordinate"
+    - tss_field: "speed"
+      our_index: 2
+      units: "knots"
+      range: [0.0, 48.6]
+      description: "Vessel velocity in knots (max ~25 m/s / 50 kt)"
+    - tss_field: "heading"
+      our_index: 3
+      units: "degrees"
+      range: [0.0, 360.0]
+      description: "Vessel bow compass heading in degrees"
+    - tss_field: "sea_state"
+      our_index: 4
+      units: "beaufort"
+      range: [0.0, 9.0]
+      description: "Local meteorological ocean wave condition (Beaufort scale)"
+    - tss_field: "antenna_train_angle"
+      our_index: 5
+      units: "degrees"
+      range: [0.0, 180.0]
+      description: "Fire-control radar azimuth relative to target"
+    - tss_field: "distance_to_opponent"
+      our_index: 6
+      units: "km"
+      range: [0.0, 100.0]
+      description: "Range to closest hostile naval or airborne contact"
+    - tss_field: "ammo"
+      our_index: 7
+      units: "count"
+      range: [0.0, 200.0]
+      description: "Remaining magazine capacity for naval guns/missiles"
+    - tss_field: "radar_range"
+      our_index: 8
+      units: "km"
+      range: [0.0, 100.0]
+      description: "Air and surface search radar instrumented range"
+
+  commander:
+    own_state_dim: 5
+    max_opponents: 3
+    max_friendlies: 2
+    entity_state_dim: 6
+    num_domains: 3
+    total_padded_dim: 53
+    own_fields:
+      - name: "pos_x"
+        units: "km"
+        range: [0.0, 100.0]
+      - name: "pos_y"
+        units: "km"
+        range: [0.0, 100.0]
+      - name: "pos_z"
+        units: "km"
+        range: [0.0, 15.0]
+      - name: "speed"
+        units: "knots"
+        range: [0.0, 1166.0]
+      - name: "heading"
+        units: "degrees"
+        range: [0.0, 360.0]
+
+action_fields:
+  air:
+    - our_index: 0
+      name: "heading_delta"
+      type: "discrete_13"
+      tss_command: "TURN"
+      scale: 15.0
+      range: [-90.0, 90.0]
+      description: "Heading adjustment in discrete 15-degree increments (-6 to +6)"
+    - our_index: 1
+      name: "velocity"
+      type: "discrete_9"
+      tss_command: "SET_SPEED"
+      scale: "type_specific"
+      range: [0, 8]
+      description: "Commanded throttle/airspeed notch (0=min cruise, 8=max afterburner)"
+    - our_index: 2
+      name: "fire_cannon"
+      type: "binary"
+      tss_command: "FIRE_CANNON"
+      scale: 1.0
+      range: [0, 1]
+      description: "Burst trigger command for internal cannon"
+    - our_index: 3
+      name: "fire_rocket"
+      type: "binary"
+      tss_command: "FIRE_ROCKET"
+      scale: 1.0
+      range: [0, 1]
+      description: "Missile launch rail release command"
+
+  ground:
+    - our_index: 0
+      name: "heading_delta"
+      type: "continuous"
+      tss_command: "TURN"
+      scale: 1.0
+      range: [-45.0, 45.0]
+      description: "Steering angle offset in degrees (-45 to +45 deg)"
+    - our_index: 1
+      name: "velocity"
+      type: "discrete_6"
+      tss_command: "SET_SPEED"
+      scale: "type_specific"
+      range: [0, 5]
+      description: "Forward throttle speed gear (0=neutral/stop, 5=top road speed)"
+    - our_index: 2
+      name: "weapon_select"
+      type: "discrete_3"
+      tss_command: "SELECT_WEAPON"
+      scale: 1.0
+      range: [0, 2]
+      description: "Weapon payload selector (0=cannon, 1=anti-tank missile, 2=SAM)"
+    - our_index: 3
+      name: "fire"
+      type: "binary"
+      tss_command: "FIRE"
+      scale: 1.0
+      range: [0, 1]
+      description: "Main gun or missile launcher trigger command"
+
+  sea:
+    - our_index: 0
+      name: "heading_delta"
+      type: "continuous"
+      tss_command: "TURN"
+      scale: 1.0
+      range: [-30.0, 30.0]
+      description: "Rudder heading command in degrees (-30 to +30 deg)"
+    - our_index: 1
+      name: "velocity"
+      type: "discrete_6"
+      tss_command: "SET_SPEED"
+      scale: "type_specific"
+      range: [0, 5]
+      description: "Engine order telegraph (0=all stop, 5=flank speed)"
+    - our_index: 2
+      name: "weapon_select"
+      type: "discrete_2"
+      tss_command: "SELECT_WEAPON"
+      scale: 1.0
+      range: [0, 1]
+      description: "Naval weapon selector (0=deck gun, 1=anti-ship missile)"
+    - our_index: 3
+      name: "fire"
+      type: "binary"
+      tss_command: "FIRE"
+      scale: 1.0
+      range: [0, 1]
+      description: "Weapon engagement fire command"
+
+  commander:
+    - our_index: 0
+      name: "directive"
+      type: "discrete_4"
+      tss_command: "SET_DOCTRINE"
+      scale: 1.0
+      range: [0, 3]
+      description: "High-level tactical directive (0=ESCAPE, 1=FIGHT_T1, 2=FIGHT_T2, 3=FIGHT_T3)"
+      options:
+        0: "ESCAPE"
+        1: "FIGHT_T1"
+        2: "FIGHT_T2"
+        3: "FIGHT_T3"
+
+agent_attrition_behavior:
+  description: "Standard handling procedure when an active TSS agent is destroyed mid-scenario"
+  policy: "zero_observation"
+  reset_hidden_state: true
+  zero_vector_padding: true
+
+fidelity_gaps:
+  - gap: "Our simulator uses simplified 2.5D kinematics with instant heading adjustments"
+    mitigation: "Domain randomization over simulation dt and speed jitter forces policy robust to inertia lag"
+  - gap: "Our sensors utilize probabilistic line-of-sight and range-dependent Pd curves"
+    mitigation: "TSS can supply raw detection matrices directly or override sensor probability parameters"
+  - gap: "Terrain elevation in our training simulator is represented via 2.5D synthetic heightmaps"
+    mitigation: "TSS supplies normalized local elevation (0 to 5000m) directly into GroundObservation vectors"
+  - gap: "Sea state dynamics apply simplified Beaufort wave drag resistance"
+    mitigation: "TSS passes calibrated sea state (0-9) to modulate naval vessel speed and accuracy envelopes"

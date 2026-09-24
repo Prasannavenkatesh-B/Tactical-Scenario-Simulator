@@ -1,0 +1,44 @@
+DEFENCE RESEARCH & DEVELOPMENT ORGANISATION (DRDO)
+MINISTRY OF DEFENCE, GOVERNMENT OF INDIA
+AERONAUTICAL DEVELOPMENT ESTABLISHMENT (ADE), BENGALURU
+
+SOFTWARE LICENSE & INTELLECTUAL PROPERTY NOTICE
+TACTICAL MULTI-AGENT REINFORCEMENT LEARNING (MARL) SYSTEM v1.0.0
+
+================================================================================
+1. PROPRIETARY RIGHTS & OWNERSHIP
+All intellectual property rights, copyrights, patent rights, trade secrets, 
+source code, neural network weight artifacts, documentation, and technical 
+specifications comprising the Tactical MARL System v1.0.0 are the exclusive 
+property of the Defence Research & Development Organisation (DRDO), Ministry 
+of Defence, Government of India.
+
+2. RESTRICTED DISTRIBUTION & ACCESS
+This software deliverable, including all source code files, architecture models, 
+and associated project artifacts, is classified as RESTRICTED / INTERNAL 
+DEFENCE USE ONLY. Unauthorized reproduction, transfer, public disclosure, 
+reverse engineering, or export beyond authorized DRDO laboratories, designated 
+armed forces operational testbeds, and contracted academic partners is strictly 
+prohibited under the Official Secrets Act and applicable Government of India 
+defence acquisition regulations.
+
+3. CONDITIONS OF USE
+Authorized personnel and affiliated research teams are granted a non-exclusive, 
+non-transferable internal license to:
+  (a) Integrate and execute the software within DRDO's Tactical Scenario 
+      Simulator (TSS) and related hardware-in-the-loop (HIL) simulation testbeds.
+  (b) Conduct research, evaluation, benchmark testing, and model fine-tuning 
+      for defence technology development purposes.
+  (c) Extend or modify software components in accordance with official project 
+      work breakdown structures approved by the Program Directorate.
+
+4. DISCLAIMER OF WARRANTY & LIMITATION OF LIABILITY
+This software deliverable is provided "AS IS" for research, evaluation, and 
+simulation testing. DRDO and its project contributors make no representations 
+or warranties of any kind concerning operational deployment in live weapon 
+systems without formal military airworthiness certification, independent safety 
+validation, and statutory approval by the competent defence authorities.
+
+================================================================================
+Copyright (c) 2026 Defence Research & Development Organisation (DRDO).
+All Rights Reserved.
