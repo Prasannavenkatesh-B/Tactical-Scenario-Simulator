@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tactical Scenario Simulator (TSS) - 2D Web Console</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    body { margin: 0; padding: 0; background: #0b1120; color: #e2e8f0; font-family: ui-sans-serif, system-ui, sans-serif; overflow: hidden; }
+    canvas { display: block; image-rendering: pixelated; }
+    .tactical-border { border: 1px solid #1e293b; }
+    .radar-sweep { position: absolute; pointer-events: none; border-radius: 50%; border: 1px solid rgba(56, 189, 248, 0.2); }
+  </style>
+</head>
+<body class="flex flex-col h-screen select-none">
+  <!-- Top Header Bar -->
+  <header class="h-12 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 z-10">
+    <div class="flex items-center space-x-3">
+      <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+      <span class="font-bold text-sm tracking-wider text-sky-400">DRDO TSS — TACTICAL COMBAT SIMULATOR (WEB CONSOLE)</span>
+      <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono" id="sim-time">TIME: 00:00.0</span>
+      <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono" id="sim-fps">60 FPS</span>
+    </div>
+    <div class="flex items-center space-x-2">
+      <select id="scenario-select" class="bg-slate-800 text-xs text-sky-300 border border-slate-700 rounded px-2 py-1 focus:outline-none">
+        <option value="5">Level 5: Tri-Service Combined Arms (Air + Ground + Naval)</option>
+        <option value="3">Level 3: 2v2 Tactical Air Combat (BVR Dogfight)</option>
+        <option value="4">Level 4: Ground Convoy vs. SAM Air Defense</option>
+        <option value="2">Level 2: 2v1 Tactical Air Intercept</option>
+        <option value="1">Level 1: 1v1 Within Visual Range Duel</option>
+      </select>
+      <button id="btn-reset" class="bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 px-3 py-1 rounded border border-slate-700 transition">Reset</button>
+      <button id="btn-play" class="bg-sky-600 hover:bg-sky-500 text-xs font-semibold text-white px-4 py-1 rounded transition">Pause</button>
+    </div>
+  </header>
+
+  <!-- Main Work Area -->
+  <div class="flex flex-1 relative overflow-hidden">
+    <!-- Center Battlefield Canvas -->
+    <div class="flex-1 relative bg-slate-950 flex items-center justify-center overflow-hidden" id="canvas-container">
+      <canvas id="simCanvas" class="w-full h-full"></canvas>
+      
+      <!-- In-Canvas Mini HUD -->
+      <div class="absolute top-4 left-4 bg-slate-900/80 backdrop-blur border border-slate-800 rounded p-2.5 text-xs font-mono space-y-1 text-slate-300 pointer-events-none">
+        <div class="text-sky-400 font-semibold mb-1">THEATER STATUS: ACTIVE</div>
+        <div>Blue Forces: <span id="hud-blue-count" class="text-sky-300 font-bold">4</span> / <span id="hud-blue-alive">4</span> Alive</div>
+        <div>Red Forces: <span id="hud-red-count" class="text-rose-400 font-bold">4</span> / <span id="hud-red-alive">4</span> Alive</div>
+        <div>Grid Scale: <span class="text-slate-400">100 km x 100 km</span></div>
+      </div>
+    </div>
+
+    <!-- Right-Hand Telemetry & Controls Sidebar -->
+    <aside class="w-80 bg-slate-900 border-l border-slate-800 flex flex-col p-4 space-y-4 overflow-y-auto z-10">
+      <!-- Entity Telemetry Card -->
+      <div class="bg-slate-950 border border-slate-800 rounded-lg p-3">
+        <h3 class="text-xs font-bold text-sky-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+          <span>Unit Telemetry Inspector</span>
+          <span id="target-team-badge" class="text-[10px] px-1.5 py-0.5 rounded bg-sky-900 text-sky-300">BLUE</span>
+        </h3>
+        <div id="telemetry-content" class="text-xs font-mono space-y-1.5 text-slate-300">
+          <div class="flex justify-between"><span class="text-slate-500">ID / Call:</span> <span id="tel-id" class="text-white font-bold">blue_air_1</span></div>
+          <div class="flex justify-between"><span class="text-slate-500">Class:</span> <span id="tel-class">AC1 (Air Superiority)</span></div>
+          <div class="flex justify-between"><span class="text-slate-500">Position:</span> <span id="tel-pos">X: 52.4 km | Y: 68.1 km</span></div>
+          <div class="flex justify-between"><span class="text-slate-500">Speed / Alt:</span> <span id="tel-speed">520 kts | 10.2 km</span></div>
+          <div class="flex justify-between"><span class="text-slate-500">Heading:</span> <span id="tel-heading">185°</span></div>
+          <div class="flex justify-between"><span class="text-slate-500">AI Intent:</span> <span id="tel-intent" class="text-emerald-400">PURSUE_INTERCEPT</span></div>
+          <div class="mt-2">
+            <div class="flex justify-between text-[11px] mb-1"><span>Hull / Armor:</span> <span id="tel-health-val">100%</span></div>
+            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+              <div id="tel-health-bar" class="bg-emerald-500 h-full w-full"></div>
+            </div>
+          </div>
+          <div class="mt-2 flex justify-between text-[11px] pt-1 border-t border-slate-800/80">
+            <span>Cannon Ammo: <b id="tel-cannon" class="text-white">200</b></span>
+            <span>Missiles: <b id="tel-missiles" class="text-white">5</b></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual Pilot Controls Card -->
+      <div class="bg-slate-950 border border-slate-800 rounded-lg p-3">
+        <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Pilot Manual Override</h3>
+        <p class="text-[11px] text-slate-400 mb-2.5">Click unit to select, then steer or fire:</p>
+        <div class="grid grid-cols-3 gap-1.5 text-center mb-2">
+          <div></div>
+          <button id="btn-throttle-up" class="bg-slate-800 hover:bg-slate-700 text-xs py-1.5 rounded font-bold text-slate-200">▲ +SPD</button>
+          <div></div>
+          <button id="btn-turn-left" class="bg-slate-800 hover:bg-slate-700 text-xs py-1.5 rounded font-bold text-slate-200">◀ TURN</button>
+          <button id="btn-fire-cannon" class="bg-amber-600/80 hover:bg-amber-600 text-xs py-1.5 rounded font-bold text-white">FIRE 20MM</button>
+          <button id="btn-turn-right" class="bg-slate-800 hover:bg-slate-700 text-xs py-1.5 rounded font-bold text-slate-200">TURN ▶</button>
+          <div></div>
+          <button id="btn-throttle-down" class="bg-slate-800 hover:bg-slate-700 text-xs py-1.5 rounded font-bold text-slate-200">▼ -SPD</button>
+          <div></div>
+        </div>
+        <button id="btn-launch-missile" class="w-full bg-rose-600/80 hover:bg-rose-600 text-xs py-1.5 rounded font-bold text-white transition">LAUNCH MISSILE / ROCKET</button>
+      </div>
+
+      <!-- View & Layer Toggles Card -->
+      <div class="bg-slate-950 border border-slate-800 rounded-lg p-3 space-y-2">
+        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Tactical Layers</h3>
+        <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer">
+          <input type="checkbox" id="chk-radar" checked class="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0">
+          <span>Show Radar Detection Cones</span>
+        </label>
+        <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer">
+          <input type="checkbox" id="chk-wez" checked class="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0">
+          <span>Show Weapon Engagement (WEZ)</span>
+        </label>
+        <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer">
+          <input type="checkbox" id="chk-trails" checked class="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0">
+          <span>Show Flight Trajectory Trails</span>
+        </label>
+        <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer">
+          <input type="checkbox" id="chk-grid" checked class="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0">
+          <span>Show Coordinate Grid (20 km)</span>
+        </label>
+      </div>
+
+      <!-- Speed Control -->
+      <div class="bg-slate-950 border border-slate-800 rounded-lg p-3">
+        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Simulation Pacing</h3>
+        <div class="grid grid-cols-4 gap-1 text-xs">
+          <button class="speed-btn bg-slate-800 py-1 rounded text-slate-300" data-speed="0.5">0.5x</button>
+          <button class="speed-btn bg-sky-600 font-bold py-1 rounded text-white" data-speed="1.0">1.0x</button>
+          <button class="speed-btn bg-slate-800 py-1 rounded text-slate-300" data-speed="2.0">2.0x</button>
+          <button class="speed-btn bg-slate-800 py-1 rounded text-slate-300" data-speed="5.0">5.0x</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Bottom Timeline Bar -->
+  <footer class="h-10 bg-slate-900 border-t border-slate-800 px-4 flex items-center justify-between text-xs text-slate-400 font-mono z-10">
+    <div class="flex items-center space-x-3">
+      <span>STEP: <b id="sim-step" class="text-sky-400">0</b> / 350</span>
+      <span class="text-slate-600">|</span>
+      <span>MODE: <b id="sim-mode" class="text-emerald-400">SIMULATE</b></span>
+    </div>
+    <div class="flex items-center space-x-2">
+      <span class="text-slate-500">Keyboard: [Space] Pause | [W] WEZ | [S] Radar | [T] Trails | [Arrows] Steer</span>
+    </div>
+  </footer>
+
+  <script>
+    // --- Canvas & Simulation State ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+
+    function resize() {
+      width = canvas.width = canvas.parentElement.clientWidth;
+      height = canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Simulation Config
+    const MAP_KM = 100.0;
+    let isPlaying = true;
+    let simSpeed = 1.0;
+    let stepCount = 0;
+    let selectedUnitId = 'blue_air_1';
+    let projectiles = [];
+
+    // Layer Toggles
+    const toggles = {
+      radar: true,
+      wez: true,
+      trails: true,
+      grid: true
+    };
+
+    // Scenario Entity Factory
+    function createEntities(level) {
+      projectiles = [];
+      const entities = [];
+
+      if (level === 1) { // 1v1
+        entities.push(
+          { id: 'blue_air_1', team: 'blue', domain: 'air', class: 'AC1 Fighter', x: 35, y: 50, heading: 90, speed: 450, alt: 8.0, health: 100, ammo: 200, missiles: 4, intent: 'DOGFIGHT_ENGAGE', trail: [] },
+          { id: 'red_air_1', team: 'red', domain: 'air', class: 'AC1 Fighter', x: 65, y: 50, heading: 270, speed: 450, alt: 8.0, health: 100, ammo: 200, missiles: 4, intent: 'DOGFIGHT_ENGAGE', trail: [] }
+        );
+      } else if (level === 2) { // 2v1
+        entities.push(
+          { id: 'blue_air_1', team: 'blue', domain: 'air', class: 'AC1 Fighter', x: 30, y: 40, heading: 90, speed: 450, alt: 8.0, health: 100, ammo: 200, missiles: 4, intent: 'PINCER_LEFT', trail: [] },
+          { id: 'blue_air_2', team: 'blue', domain: 'air', class: 'AC2 Interceptor', x: 30, y: 60, heading: 90, speed: 400, alt: 9.0, health: 100, ammo: 200, missiles: 2, intent: 'PINCER_RIGHT', trail: [] },
+          { id: 'red_air_1', team: 'red', domain: 'air', class: 'AC1 Fighter', x: 70, y: 50, heading: 270, speed: 450, alt: 8.5, health: 100, ammo: 200, missiles: 4, intent: 'EVADE_BREAK', trail: [] }
+        );
+      } else if (level === 3) { // 2v2 Air
+        entities.push(
+          { id: 'blue_air_1', team: 'blue', domain: 'air', class: 'AC1 Fighter', x: 25, y: 40, heading: 90, speed: 480, alt: 8.5, health: 100, ammo: 200, missiles: 4, intent: 'LEAD_PURSUIT', trail: [] },
+          { id: 'blue_air_2', team: 'blue', domain: 'air', class: 'AC2 Interceptor', x: 25, y: 60, heading: 90, speed: 420, alt: 9.5, health: 100, ammo: 200, missiles: 2, intent: 'RADAR_SCAN', trail: [] },
+          { id: 'red_air_1', team: 'red', domain: 'air', class: 'AC1 Fighter', x: 75, y: 40, heading: 270, speed: 480, alt: 8.5, health: 100, ammo: 200, missiles: 4, intent: 'DEFENSIVE_BREAK', trail: [] },
+          { id: 'red_air_2', team: 'red', domain: 'air', class: 'AC2 Interceptor', x: 75, y: 60, heading: 270, speed: 420, alt: 9.5, health: 100, ammo: 200, missiles: 2, intent: 'STANDOFF_FIRE', trail: [] }
+        );
+      } else if (level === 4) { // Ground SAM
+        entities.push(
+          { id: 'blue_air_1', team: 'blue', domain: 'air', class: 'AC1 Fighter', x: 20, y: 30, heading: 120, speed: 500, alt: 6.0, health: 100, ammo: 200, missiles: 4, intent: 'SEAD_STRIKE', trail: [] },
+          { id: 'blue_ground_1', team: 'blue', domain: 'ground', class: 'Armored Convoy', x: 30, y: 70, heading: 45, speed: 40, alt: 0.1, health: 100, ammo: 100, missiles: 0, intent: 'CONVOY_ADVANCE', trail: [] },
+          { id: 'red_ground_1', team: 'red', domain: 'ground', class: 'SAM Battery', x: 70, y: 40, heading: 220, speed: 0, alt: 0.2, health: 100, ammo: 50, missiles: 8, intent: 'AIR_DEFENSE_AMBUSH', trail: [] }
+        );
+      } else { // Level 5 Combined Arms
+        entities.push(
+          { id: 'blue_air_1', team: 'blue', domain: 'air', class: 'AC1 Fighter', x: 30, y: 30, heading: 90, speed: 480, alt: 9.0, health: 100, ammo: 200, missiles: 4, intent: 'PURSUIT_ENGAGE', trail: [] },
+          { id: 'blue_air_2', team: 'blue', domain: 'air', class: 'AC2 Interceptor', x: 30, y: 45, heading: 90, speed: 420, alt: 10.5, health: 100, ammo: 200, missiles: 2, intent: 'RADAR_SWEEP', trail: [] },
+          { id: 'blue_ground_1', team: 'blue', domain: 'ground', class: 'SAM Battery', x: 25, y: 75, heading: 45, speed: 30, alt: 0.1, health: 100, ammo: 100, missiles: 8, intent: 'MUTUAL_COVER', trail: [] },
+          { id: 'blue_sea_1', team: 'blue', domain: 'sea', class: 'Frigate Combatant', x: 35, y: 88, heading: 60, speed: 28, alt: 0.0, health: 100, ammo: 80, missiles: 16, intent: 'NAVAL_SCREEN', trail: [] },
+          
+          { id: 'red_air_1', team: 'red', domain: 'air', class: 'AC1 Fighter', x: 75, y: 30, heading: 270, speed: 480, alt: 9.0, health: 100, ammo: 200, missiles: 4, intent: 'LEAD_PURSUIT', trail: [] },
+          { id: 'red_air_2', team: 'red', domain: 'air', class: 'AC2 Interceptor', x: 75, y: 45, heading: 270, speed: 420, alt: 10.5, health: 100, ammo: 200, missiles: 2, intent: 'ENERGY_MANAGEMENT', trail: [] },
+          { id: 'red_ground_1', team: 'red', domain: 'ground', class: 'SAM Battery', x: 75, y: 75, heading: 225, speed: 25, alt: 0.1, health: 100, ammo: 100, missiles: 8, intent: 'TERRAIN_COVER', trail: [] },
+          { id: 'red_sea_1', team: 'red', domain: 'sea', class: 'Missile Corvette', x: 65, y: 88, heading: 240, speed: 30, alt: 0.0, health: 100, ammo: 80, missiles: 12, intent: 'STANDOFF_FIRE', trail: [] }
+        );
+      }
+      return entities;
+    }
+
+    let entities = createEntities(5);
+
+    // Coordinate Conversion
+    function kmToCanvas(xKm, yKm) {
+      return {
+        x: (xKm / MAP_KM) * width,
+        y: (yKm / MAP_KM) * height
+      };
+    }
+
+    function canvasToKm(cx, cy) {
+      return {
+        x: (cx / width) * MAP_KM,
+        y: (cy / height) * MAP_KM
+      };
+    }
+
+    // AI Behaviors & Physics Update
+    function updatePhysics() {
+      if (!isPlaying) return;
+
+      stepCount++;
+      document.getElementById('sim-step').innerText = stepCount;
+      const seconds = (stepCount * 0.1).toFixed(1);
+      document.getElementById('sim-time').innerText = `TIME: ${seconds}s`;
+
+      // Update Projectiles
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        const p = projectiles[i];
+        const rad = (p.heading * Math.PI) / 180;
+        p.x += Math.sin(rad) * p.speed * 0.05;
+        p.y -= Math.cos(rad) * p.speed * 0.05;
+        p.life--;
+
+        // Check Hit
+        entities.forEach(target => {
+          if (target.team !== p.team && target.health > 0) {
+            const dist = Math.hypot(target.x - p.x, target.y - p.y);
+            if (dist < 2.5) {
+              target.health = Math.max(0, target.health - p.damage);
+              p.life = 0; // Destroy projectile
+            }
+          }
+        });
+
+        if (p.life <= 0 || p.x < 0 || p.x > MAP_KM || p.y < 0 || p.y > MAP_KM) {
+          projectiles.splice(i, 1);
+        }
+      }
+
+      // Update Entities
+      entities.forEach(e => {
+        if (e.health <= 0) return;
+
+        // Simple Autonomous Maneuvers
+        if (e.id !== selectedUnitId || !window.manualOverride) {
+          // Find closest enemy
+          let closestEnemy = null;
+          let minDist = 999;
+          entities.forEach(other => {
+            if (other.team !== e.team && other.health > 0) {
+              const d = Math.hypot(other.x - e.x, other.y - e.y);
+              if (d < minDist) {
+                minDist = d;
+                closestEnemy = other;
+              }
+            }
+          });
+
+          if (closestEnemy) {
+            const targetAngle = (Math.atan2(closestEnemy.x - e.x, -(closestEnemy.y - e.y)) * 180) / Math.PI;
+            let diff = targetAngle - e.heading;
+            while (diff < -180) diff += 360;
+            while (diff > 180) diff -= 360;
+
+            const turnRate = e.domain === 'air' ? 3.5 : (e.domain === 'ground' ? 6.0 : 2.0);
+            e.heading += Math.sign(diff) * Math.min(Math.abs(diff), turnRate);
+
+            // Autonomous firing if in cone
+            if (Math.abs(diff) < 15 && minDist < (e.domain === 'air' ? 25 : 35) && Math.random() < 0.02) {
+              fireProjectile(e, 'missile');
+            }
+          }
+        }
+
+        // Advance Kinematics
+        const rad = (e.heading * Math.PI) / 180;
+        const speedScale = e.domain === 'air' ? 0.03 : 0.01;
+        e.x += Math.sin(rad) * (e.speed / 100) * speedScale * simSpeed;
+        e.y -= Math.cos(rad) * (e.speed / 100) * speedScale * simSpeed;
+
+        // Boundaries
+        if (e.x < 5) { e.x = 5; e.heading = 90; }
+        if (e.x > MAP_KM - 5) { e.x = MAP_KM - 5; e.heading = 270; }
+        if (e.y < 5) { e.y = 5; e.heading = 180; }
+        if (e.y > MAP_KM - 5) { e.y = MAP_KM - 5; e.heading = 0; }
+
+        // Trajectory Trail
+        if (stepCount % 5 === 0) {
+          e.trail.push({ x: e.x, y: e.y });
+          if (e.trail.length > 25) e.trail.shift();
+        }
+      });
+
+      updateTelemetryUI();
+      updateHUD();
+    }
+
+    function fireProjectile(unit, type) {
+      if (unit.health <= 0) return;
+      if (type === 'cannon' && unit.ammo <= 0) return;
+      if (type === 'missile' && unit.missiles <= 0) return;
+
+      if (type === 'cannon') unit.ammo = Math.max(0, unit.ammo - 5);
+      if (type === 'missile') unit.missiles = Math.max(0, unit.missiles - 1);
+
+      projectiles.push({
+        x: unit.x,
+        y: unit.y,
+        heading: unit.heading,
+        speed: type === 'cannon' ? 1200 : 800,
+        damage: type === 'cannon' ? 12 : 45,
+        team: unit.team,
+        type: type,
+        life: type === 'cannon' ? 30 : 90
+      });
+    }
+
+    // Canvas Render Pipeline
+    function draw() {
+      ctx.fillStyle = '#060d1b';
+      ctx.fillRect(0, 0, width, height);
+
+      // Coordinate Grid
+      if (toggles.grid) {
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1;
+        for (let km = 10; km < MAP_KM; km += 10) {
+          const pt = kmToCanvas(km, km);
+          ctx.beginPath();
+          ctx.moveTo(pt.x, 0); ctx.lineTo(pt.x, height);
+          ctx.moveTo(0, pt.y); ctx.lineTo(width, pt.y);
+          ctx.stroke();
+
+          ctx.fillStyle = '#475569';
+          ctx.font = '9px monospace';
+          ctx.fillText(`${km}k`, pt.x + 3, 12);
+        }
+      }
+
+      // Draw Trajectory Trails
+      if (toggles.trails) {
+        entities.forEach(e => {
+          if (e.trail.length > 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = e.team === 'blue' ? 'rgba(56, 189, 248, 0.35)' : 'rgba(244, 63, 94, 0.35)';
+            ctx.lineWidth = 1.5;
+            e.trail.forEach((pt, idx) => {
+              const cPt = kmToCanvas(pt.x, pt.y);
+              if (idx === 0) ctx.moveTo(cPt.x, cPt.y);
+              else ctx.lineTo(cPt.x, cPt.y);
+            });
+            ctx.stroke();
+          }
+        });
+      }
+
+      // Draw Entities & Cones
+      entities.forEach(e => {
+        if (e.health <= 0) return;
+
+        const cPt = kmToCanvas(e.x, e.y);
+        const rad = (e.heading * Math.PI) / 180;
+
+        // Radar Sensor Bubble
+        if (toggles.radar) {
+          const radarRadius = (e.domain === 'air' ? 35 : (e.domain === 'sea' ? 40 : 25)) * (width / MAP_KM);
+          ctx.beginPath();
+          ctx.arc(cPt.x, cPt.y, radarRadius, 0, Math.PI * 2);
+          ctx.fillStyle = e.team === 'blue' ? 'rgba(56, 189, 248, 0.04)' : 'rgba(244, 63, 94, 0.04)';
+          ctx.fill();
+          ctx.strokeStyle = e.team === 'blue' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(244, 63, 94, 0.2)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+
+        // Weapon Engagement Zone (WEZ) Cone
+        if (toggles.wez) {
+          const wezRange = (e.domain === 'air' ? 18 : (e.domain === 'sea' ? 22 : 14)) * (width / MAP_KM);
+          const coneHalfAngle = 20 * (Math.PI / 180);
+          ctx.beginPath();
+          ctx.moveTo(cPt.x, cPt.y);
+          ctx.arc(cPt.x, cPt.y, wezRange, (e.heading - 90 - 20) * (Math.PI / 180), (e.heading - 90 + 20) * (Math.PI / 180));
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(251, 191, 36, 0.12)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(251, 191, 36, 0.4)';
+          ctx.stroke();
+        }
+
+        // Entity Icon (Airplane, Tank, Ship)
+        ctx.save();
+        ctx.translate(cPt.x, cPt.y);
+        ctx.rotate(rad);
+
+        // Highlight Selected
+        if (e.id === selectedUnitId) {
+          ctx.beginPath();
+          ctx.arc(0, 0, 18, 0, Math.PI * 2);
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        const color = e.team === 'blue' ? '#38bdf8' : '#f43f5e';
+        ctx.fillStyle = color;
+
+        if (e.domain === 'air') {
+          // Jet Silhouette
+          ctx.beginPath();
+          ctx.moveTo(0, -12);
+          ctx.lineTo(8, 8);
+          ctx.lineTo(0, 4);
+          ctx.lineTo(-8, 8);
+          ctx.closePath();
+          ctx.fill();
+        } else if (e.domain === 'ground') {
+          // Tank Box
+          ctx.fillRect(-8, -8, 16, 16);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(-2, -12, 4, 8); // Gun barrel
+        } else {
+          // Ship Diamond
+          ctx.beginPath();
+          ctx.moveTo(0, -14);
+          ctx.lineTo(7, 0);
+          ctx.lineTo(5, 12);
+          ctx.lineTo(-5, 12);
+          ctx.lineTo(-7, 0);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+
+        // Tactical Callout Label & Health Bar
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '10px monospace';
+        ctx.fillText(e.id, cPt.x - 22, cPt.y - 18);
+
+        // Health bar above unit
+        const hbWidth = 32;
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(cPt.x - hbWidth / 2, cPt.y - 14, hbWidth, 3);
+        ctx.fillStyle = e.health > 40 ? '#10b981' : '#ef4444';
+        ctx.fillRect(cPt.x - hbWidth / 2, cPt.y - 14, (hbWidth * e.health) / 100, 3);
+      });
+
+      // Draw Projectiles
+      projectiles.forEach(p => {
+        const cPt = kmToCanvas(p.x, p.y);
+        ctx.beginPath();
+        ctx.arc(cPt.x, cPt.y, p.type === 'missile' ? 3 : 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = p.type === 'missile' ? '#fbbf24' : '#ffffff';
+        ctx.fill();
+      });
+    }
+
+    // Animation Loop
+    function loop() {
+      updatePhysics();
+      draw();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    // Telemetry UI Binder
+    function updateTelemetryUI() {
+      const u = entities.find(e => e.id === selectedUnitId) || entities[0];
+      if (!u) return;
+
+      document.getElementById('tel-id').innerText = u.id;
+      document.getElementById('tel-class').innerText = `${u.class} (${u.domain.toUpperCase()})`;
+      document.getElementById('tel-pos').innerText = `X: ${u.x.toFixed(1)} km | Y: ${u.y.toFixed(1)} km`;
+      document.getElementById('tel-speed').innerText = `${Math.round(u.speed)} kts | Alt: ${u.alt.toFixed(1)} km`;
+      document.getElementById('tel-heading').innerText = `${Math.round(u.heading)}°`;
+      document.getElementById('tel-intent').innerText = u.health > 0 ? u.intent : 'DESTROYED';
+      document.getElementById('tel-health-val').innerText = `${Math.round(u.health)}%`;
+      document.getElementById('tel-health-bar').style.width = `${u.health}%`;
+      document.getElementById('tel-cannon').innerText = u.ammo;
+      document.getElementById('tel-missiles').innerText = u.missiles;
+
+      const badge = document.getElementById('target-team-badge');
+      badge.innerText = u.team.toUpperCase();
+      badge.className = u.team === 'blue' ? 'text-[10px] px-1.5 py-0.5 rounded bg-sky-900 text-sky-300' : 'text-[10px] px-1.5 py-0.5 rounded bg-rose-900 text-rose-300';
+    }
+
+    function updateHUD() {
+      const blueAlive = entities.filter(e => e.team === 'blue' && e.health > 0).length;
+      const blueTotal = entities.filter(e => e.team === 'blue').length;
+      const redAlive = entities.filter(e => e.team === 'red' && e.health > 0).length;
+      const redTotal = entities.filter(e => e.team === 'red').length;
+
+      document.getElementById('hud-blue-count').innerText = blueTotal;
+      document.getElementById('hud-blue-alive').innerText = blueAlive;
+      document.getElementById('hud-red-count').innerText = redTotal;
+      document.getElementById('hud-red-alive').innerText = redAlive;
+    }
+
+    // --- Interactive Event Listeners ---
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickKm = canvasToKm(e.clientX - rect.left, e.clientY - rect.top);
+      
+      let nearest = null;
+      let minD = 999;
+      entities.forEach(ent => {
+        const d = Math.hypot(ent.x - clickKm.x, ent.y - clickKm.y);
+        if (d < minD && d < 8) {
+          minD = d;
+          nearest = ent;
+        }
+      });
+      if (nearest) {
+        selectedUnitId = nearest.id;
+        updateTelemetryUI();
+      }
+    });
+
+    // Button Controls
+    document.getElementById('btn-play').addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      document.getElementById('btn-play').innerText = isPlaying ? 'Pause' : 'Play';
+      document.getElementById('sim-mode').innerText = isPlaying ? 'SIMULATE' : 'PAUSED';
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      stepCount = 0;
+      const lvl = parseInt(document.getElementById('scenario-select').value);
+      entities = createEntities(lvl);
+    });
+
+    document.getElementById('scenario-select').addEventListener('change', (e) => {
+      stepCount = 0;
+      entities = createEntities(parseInt(e.target.value));
+      selectedUnitId = entities[0].id;
+    });
+
+    document.querySelectorAll('.speed-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.speed-btn').forEach(b => {
+          b.className = 'speed-btn bg-slate-800 py-1 rounded text-slate-300';
+        });
+        e.target.className = 'speed-btn bg-sky-600 font-bold py-1 rounded text-white';
+        simSpeed = parseFloat(e.target.dataset.speed);
+      });
+    });
+
+    // Layer checkboxes
+    document.getElementById('chk-radar').addEventListener('change', e => toggles.radar = e.target.checked);
+    document.getElementById('chk-wez').addEventListener('change', e => toggles.wez = e.target.checked);
+    document.getElementById('chk-trails').addEventListener('change', e => toggles.trails = e.target.checked);
+    document.getElementById('chk-grid').addEventListener('change', e => toggles.grid = e.target.checked);
+
+    // Manual Steer Buttons
+    window.manualOverride = false;
+    function getSelectedUnit() { return entities.find(e => e.id === selectedUnitId); }
+
+    document.getElementById('btn-turn-left').addEventListener('click', () => {
+      window.manualOverride = true;
+      const u = getSelectedUnit();
+      if (u) u.heading = (u.heading - 10 + 360) % 360;
+    });
+    document.getElementById('btn-turn-right').addEventListener('click', () => {
+      window.manualOverride = true;
+      const u = getSelectedUnit();
+      if (u) u.heading = (u.heading + 10) % 360;
+    });
+    document.getElementById('btn-throttle-up').addEventListener('click', () => {
+      const u = getSelectedUnit();
+      if (u) u.speed = Math.min(u.speed + 50, 900);
+    });
+    document.getElementById('btn-throttle-down').addEventListener('click', () => {
+      const u = getSelectedUnit();
+      if (u) u.speed = Math.max(u.speed - 50, 100);
+    });
+    document.getElementById('btn-fire-cannon').addEventListener('click', () => {
+      const u = getSelectedUnit();
+      if (u) fireProjectile(u, 'cannon');
+    });
+    document.getElementById('btn-launch-missile').addEventListener('click', () => {
+      const u = getSelectedUnit();
+      if (u) fireProjectile(u, 'missile');
+    });
+
+    // Keyboard Shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        document.getElementById('btn-play').click();
+      } else if (e.code === 'KeyW') {
+        const c = document.getElementById('chk-wez'); c.checked = !c.checked; toggles.wez = c.checked;
+      } else if (e.code === 'KeyS') {
+        const c = document.getElementById('chk-radar'); c.checked = !c.checked; toggles.radar = c.checked;
+      } else if (e.code === 'KeyT') {
+        const c = document.getElementById('chk-trails'); c.checked = !c.checked; toggles.trails = c.checked;
+      } else if (e.code === 'ArrowLeft') {
+        document.getElementById('btn-turn-left').click();
+      } else if (e.code === 'ArrowRight') {
+        document.getElementById('btn-turn-right').click();
+      } else if (e.code === 'ArrowUp') {
+        document.getElementById('btn-throttle-up').click();
+      } else if (e.code === 'ArrowDown') {
+        document.getElementById('btn-throttle-down').click();
+      } else if (e.code === 'KeyF') {
+        document.getElementById('btn-fire-cannon').click();
+      } else if (e.code === 'KeyR') {
+        document.getElementById('btn-launch-missile').click();
+      }
+    });
+  </script>
+</body>
+</html>
