@@ -477,6 +477,14 @@ def build_college_report():
     ]
     add_table_data(doc, tbl_arch_headers, tbl_arch_rows, col_widths=[1.4, 1.8, 3.3])
 
+    fig_ui_path = ROOT / "docs" / "figures" / "simulator_screenshot.png"
+    add_figure_with_caption(
+        doc, fig_ui_path,
+        "2D Tactical Simulation System (TSS) Real-Time Operational Interface: Multi-Domain Battlespace Rendering Blue Force vs. Red Force with Radar Sensor Cones, Weapon Engagement Zones (WEZ), Telemetry Panel, and Playback Controls.",
+        figure_num=2,
+        width=Inches(6.2)
+    )
+
     # =========================================================================
     # 4. MATHEMATICAL FORMULATION & FORMULAS
     # =========================================================================
@@ -509,7 +517,7 @@ def build_college_report():
     add_figure_with_caption(
         doc, fig2_path,
         "Hierarchical Multi-Agent Neural Architecture & Decision Flow: Strategic GRU Theater Commander Directing Domain-Specific Tactical Policies.",
-        figure_num=2,
+        figure_num=3,
         width=Inches(6.2)
     )
 
@@ -646,15 +654,15 @@ def build_college_report():
     add_body_paragraph(
         doc,
         "The complete system was benchmarked across 100 simulation episodes in the Level 5 Joint Multi-Domain battlespace. "
-        "Figure 3 presents the operational latency breakdown across simulator kinematics physics, in-process neural forward passes, "
+        "Figure 4 presents the operational latency breakdown across simulator kinematics physics, in-process neural forward passes, "
         "and REST services, demonstrating an overwhelming 71% safety margin below DRDO's mandatory 2.0 ms real-time ceiling."
     )
 
-    fig3_path = ROOT / "docs" / "figures" / "latency_execution_flow.png"
+    fig4_path = ROOT / "docs" / "figures" / "latency_execution_flow.png"
     add_figure_with_caption(
-        doc, fig3_path,
+        doc, fig4_path,
         "Operational Forward Inference Latency Benchmarks, Component Time Breakdowns, and DRDO Safety Margins.",
-        figure_num=3,
+        figure_num=4,
         width=Inches(6.0)
     )
 

@@ -100,6 +100,9 @@ To address these challenges, we built an enterprise-grade **10-Layer Decoupled A
 ![Figure 1: Full 10-Layer Tactical MARL System Architecture](figures/system_architecture_10_layer.png)  
 *Figure 1: End-to-End 10-Layer Tactical MARL System Architecture, Communication Dataflows, and TSS Integration Boundary.*
 
+![Figure 2: 2D Tactical Simulation Operational Interface](figures/simulator_screenshot.png)  
+*Figure 2: 2D Tactical Simulation System (TSS) Real-Time Operational Interface: Multi-Domain Battlespace Rendering Blue Force vs. Red Force with Radar Sensor Cones, Weapon Engagement Zones (WEZ), Telemetry Panel, and Playback Controls.*
+
 ---
 
 ## 4. MATHEMATICAL FORMULATION & KEY ALGORITHMIC FORMULAS
@@ -122,8 +125,8 @@ $$\mathcal{M} = \left\langle \mathcal{N}, \mathcal{S}, \{\mathcal{A}_i\}, \mathc
 2. **Tactical Domain Policies ($\pi_i$):** Operate at $10\text{ Hz}$ ($\Delta t = 0.1\text{ s}$), conditioning on local observations $o_t^i$ and commander directives $g_t^{\text{dom}}$:
    $$a_t^i \sim \pi_{\text{dom}}(a_t^i \mid o_t^i, g_t^{\text{dom}})$$
 
-![Figure 2: Hierarchical Policy Decision Flow](figures/hierarchical_policy_flow.png)  
-*Figure 2: Hierarchical Multi-Agent Neural Architecture & Decision Flow: Strategic GRU Theater Commander Directing Domain-Specific Tactical Policies.*
+![Figure 3: Hierarchical Policy Decision Flow](figures/hierarchical_policy_flow.png)  
+*Figure 3: Hierarchical Multi-Agent Neural Architecture & Decision Flow: Strategic GRU Theater Commander Directing Domain-Specific Tactical Policies.*
 
 ### 4.3 Factorized Multi-Discrete Proximal Policy Optimization (PPO)
 To avoid exponential action space explosion in aircraft maneuvering, the discrete action space is factorized into independent categorical heads:
@@ -225,10 +228,10 @@ This guarantees permutation invariance: an enemy fighter is evaluated as a prior
 ## 7. WHAT WE ACHIEVED: EXPERIMENTAL RESULTS & FIGURES OF MERIT
 
 ### 7.1 Operational Latency & Master Figures of Merit (FoM) Audit
-The software was benchmarked across 100 simulation episodes on the Level 5 Joint Multi-Domain scenario. Operational forward inference latency across simulator physics, in-process neural execution, and network REST services is depicted in Figure 3:
+The software was benchmarked across 100 simulation episodes on the Level 5 Joint Multi-Domain scenario. Operational forward inference latency across simulator physics, in-process neural execution, and network REST services is depicted in Figure 4:
 
-![Figure 3: Operational Latency Benchmark](figures/latency_execution_flow.png)  
-*Figure 3: Operational Forward Inference Latency Benchmarks, Component Time Breakdowns, and DRDO Safety Margins.*
+![Figure 4: Operational Latency Benchmark](figures/latency_execution_flow.png)  
+*Figure 4: Operational Forward Inference Latency Benchmarks, Component Time Breakdowns, and DRDO Safety Margins.*
 
 The empirical results across all contractual Figures of Merit (FoM) are verified in the audit table below:
 
