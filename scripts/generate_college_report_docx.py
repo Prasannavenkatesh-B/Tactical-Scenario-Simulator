@@ -148,6 +148,35 @@ def add_callout_box(doc, title: str, text: str):
     p_after.paragraph_format.space_after = Pt(4)
 
 
+def add_figure_with_caption(doc, image_path: Path, caption_text: str, figure_num: int, width=Inches(6.2)):
+    """Add a high-resolution figure image centered with a styled academic caption."""
+    if not image_path.exists():
+        print(f"[!] Warning: Figure not found at {image_path}")
+        return
+    p_img = doc.add_paragraph()
+    p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_img.paragraph_format.space_before = Pt(10)
+    p_img.paragraph_format.space_after = Pt(4)
+    run_img = p_img.add_run()
+    run_img.add_picture(str(image_path), width=width)
+
+    p_cap = doc.add_paragraph()
+    p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_cap.paragraph_format.space_before = Pt(2)
+    p_cap.paragraph_format.space_after = Pt(12)
+    r_cap_lbl = p_cap.add_run(f"Figure {figure_num}: ")
+    r_cap_lbl.font.name = "Calibri"
+    r_cap_lbl.font.size = Pt(9.5)
+    r_cap_lbl.font.bold = True
+    r_cap_lbl.font.color.rgb = RGBColor(26, 54, 93)
+
+    r_cap_txt = p_cap.add_run(caption_text)
+    r_cap_txt.font.name = "Calibri"
+    r_cap_txt.font.size = Pt(9.5)
+    r_cap_txt.font.italic = True
+    r_cap_txt.font.color.rgb = RGBColor(74, 85, 104)
+
+
 def add_table_data(doc, headers: list[str], rows: list[list[str]], col_widths: list[float] = None):
     """Create a professionally styled data table with shaded header and alternating row fills."""
     tbl = doc.add_table(rows=len(rows) + 1, cols=len(headers))
@@ -211,6 +240,22 @@ def add_table_data(doc, headers: list[str], rows: list[list[str]], col_widths: l
 
 
 def build_college_report():
+    fig_dir = ROOT / "docs" / "figures"
+    fig1 = fig_dir / "system_architecture_10_layer.png"
+    fig2 = fig_dir / "hierarchical_policy_flow.png"
+    fig3 = fig_dir / "latency_execution_flow.png"
+    if not (fig1.exists() and fig2.exists() and fig3.exists()):
+        import sys
+        sys.path.insert(0, str(ROOT))
+        from scripts.generate_diagrams import (
+            generate_10_layer_architecture_diagram,
+            generate_hierarchical_policy_diagram,
+            generate_latency_benchmark_diagram,
+        )
+        generate_10_layer_architecture_diagram()
+        generate_hierarchical_policy_diagram()
+        generate_latency_benchmark_diagram()
+
     doc = Document()
 
     # Page Margins: 1 inch all sides
@@ -400,7 +445,21 @@ def build_college_report():
         doc,
         "To satisfy DRDO's specifications, we designed and implemented a modular, decoupled 10-layer software architecture. "
         "No layer has circular dependencies, allowing simulation physics, neural network algorithms, database persistence, and API "
-        "services to be tested and upgraded independently."
+        "services to be tested and upgraded independently. Figure 1 illustrates the end-to-end multi-layer architecture, dataflow, "
+        "and integration boundary with the DRDO Tactical Scenario Simulator."
+    )
+
+    fig1_path = ROOT / "docs" / "figures" / "system_architecture_10_layer.png"
+    add_figure_with_caption(
+        doc, fig1_path,
+        "End-to-End 10-Layer Tactical MARL System Architecture, Communication Dataflows, and TSS Integration Boundary.",
+        figure_num=1,
+        width=Inches(6.2)
+    )
+
+    add_body_paragraph(
+        doc,
+        "The functional responsibilities, module paths, and implementation highlights for all 10 architectural layers are itemized in Table 2 below:"
     )
 
     tbl_arch_headers = ["Layer", "Module Path", "Core Functionality & Technical Implementation"]
@@ -444,6 +503,14 @@ def build_college_report():
         "2. Tactical Domain Controllers (pi_dom): Operate at high frequency (10 Hz, dt = 0.1s), conditioning on local observations "
         "and active commander sub-goals:\n"
         "   a_t^i ~ pi_dom(a_t^i | o_t^i, g_t^dom)"
+    )
+
+    fig2_path = ROOT / "docs" / "figures" / "hierarchical_policy_flow.png"
+    add_figure_with_caption(
+        doc, fig2_path,
+        "Hierarchical Multi-Agent Neural Architecture & Decision Flow: Strategic GRU Theater Commander Directing Domain-Specific Tactical Policies.",
+        figure_num=2,
+        width=Inches(6.2)
     )
 
     add_styled_heading(doc, "4.3 Factorized Multi-Discrete PPO & Clipped Surrogate Objective", level=2)
@@ -576,6 +643,25 @@ def build_college_report():
     # 7. WHAT WE ACHIEVED: RESULTS & FIGURES OF MERIT
     # =========================================================================
     add_styled_heading(doc, "7. Experimental Results & Verification Audit", level=1)
+    add_body_paragraph(
+        doc,
+        "The complete system was benchmarked across 100 simulation episodes in the Level 5 Joint Multi-Domain battlespace. "
+        "Figure 3 presents the operational latency breakdown across simulator kinematics physics, in-process neural forward passes, "
+        "and REST services, demonstrating an overwhelming 71% safety margin below DRDO's mandatory 2.0 ms real-time ceiling."
+    )
+
+    fig3_path = ROOT / "docs" / "figures" / "latency_execution_flow.png"
+    add_figure_with_caption(
+        doc, fig3_path,
+        "Operational Forward Inference Latency Benchmarks, Component Time Breakdowns, and DRDO Safety Margins.",
+        figure_num=3,
+        width=Inches(6.0)
+    )
+
+    add_body_paragraph(
+        doc,
+        "The empirical results across all contractual Figures of Merit (FoM) are summarized in Table 4 below:"
+    )
 
     tbl_fom_headers = ["ID", "Figure of Merit Description", "Unit", "DRDO Target", "Achieved Value", "Status"]
     tbl_fom_rows = [
