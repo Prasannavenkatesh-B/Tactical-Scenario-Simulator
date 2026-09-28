@@ -12,7 +12,11 @@ ROOT = Path(__file__).resolve().parent.parent
 REQUIRED_FILES = [
     # Top level
     "RELEASE_NOTES.md",
-    # Docs
+    "README.md",
+    "COLLEGE_PROJECT_REPORT.docx",
+    "TSS_Colab_Training_5000.ipynb",
+    "simulator.html",
+    # Docs (12 Markdown Files)
     "docs/README.md",
     "docs/ARCHITECTURE.md",
     "docs/TECHNICAL_REPORT.md",
@@ -21,11 +25,11 @@ REQUIRED_FILES = [
     "docs/DATABASE_SCHEMA.md",
     "docs/TROUBLESHOOTING.md",
     "docs/CHANGELOG.md",
-    "docs/LICENSE.txt",
     "docs/INTEGRATION.md",
     "docs/NON_DETERMINISM_REPORT.md",
     "docs/REALISM_VALIDATION_REPORT.md",
-    # Proposal
+    "docs/COLLEGE_PROJECT_REPORT.md",
+    # Proposal (10 DRDO Forms)
     "proposal/FORM_1_SUMMARY.md",
     "proposal/FORM_2_TECHNICAL_BRIEF.md",
     "proposal/FORM_3A_LAB_RECOMMENDATION.md",
@@ -39,8 +43,20 @@ REQUIRED_FILES = [
     # Reports
     "reports/realism/report.json",
     "reports/realism/report.md",
+    "reports/realism_stage_b/report.json",
+    "reports/realism_stage_b/report.md",
     "reports/non_determinism/report.json",
     "reports/non_determinism/report.md",
+    # Checkpoints
+    "checkpoints/final/checkpoint_final.pt",
+    "checkpoints/final/checkpoint_stage_a_final.pt",
+    "checkpoints/final/checkpoint_stage_b_iter_01000.pt",
+    # Web App
+    "web/package.json",
+    "web/index.html",
+    "web/vite.config.ts",
+    "web/src/App.tsx",
+    "web/dist/index.html",
 ]
 
 INCLUDED_DIRS = [
@@ -51,6 +67,7 @@ INCLUDED_DIRS = [
     "proposal",
     "checkpoints/final",
     "reports",
+    "web",
 ]
 
 
@@ -66,14 +83,14 @@ def compute_sha256(filepath: Path) -> str:
 def verify_deliverables() -> bool:
     """Verify that all mandatory deliverable files exist on disk."""
     print("=" * 80)
-    print("  VERIFYING DRDO v1.0.0 MANDATORY DELIVERABLE ARTIFACTS")
+    print("  VERIFYING DRDO TSS MANDATORY DELIVERABLE ARTIFACTS")
     print("=" * 80)
     missing = []
     for rel_path in REQUIRED_FILES:
         full_path = ROOT / rel_path
         if full_path.exists():
             size = full_path.stat().st_size
-            print(f"  [OK] {rel_path:45} ({size:>6} bytes)")
+            print(f"  [OK] {rel_path:48} ({size:>8} bytes)")
         else:
             print(f"  [MISSING] {rel_path}")
             missing.append(rel_path)
@@ -96,8 +113,19 @@ def bundle_deliverable_zip(output_zip: Path) -> int:
     total_uncompressed_bytes = 0
 
     with zipfile.ZipFile(output_zip, "w", zipfile.ZIP_DEFLATED) as zf:
-        # Add root files
-        root_files = ["RELEASE_NOTES.md", "pyproject.toml", ".gitignore"]
+        # Add root files and launch scripts
+        root_files = [
+            "RELEASE_NOTES.md",
+            "README.md",
+            "COLLEGE_PROJECT_REPORT.docx",
+            "TSS_Colab_Training_5000.ipynb",
+            "simulator.html",
+            "LAUNCH_SIMULATOR.bat",
+            "LAUNCH_TACTICAL_SIMULATOR.bat",
+            "LAUNCH_REACT_C4ISR_CONSOLE.bat",
+            "OPEN_WEB_SIMULATOR.bat",
+            ".gitignore",
+        ]
         for rf in root_files:
             p = ROOT / rf
             if p.exists():
@@ -111,8 +139,11 @@ def bundle_deliverable_zip(output_zip: Path) -> int:
             if not dir_path.exists():
                 continue
             for root, _, files in os.walk(dir_path):
+                # Skip heavy temporary and third-party files
+                if any(x in root for x in ["__pycache__", "node_modules", ".git", ".mypy_cache", ".pytest_cache"]):
+                    continue
                 for f in files:
-                    if f.endswith((".pyc", ".pyo", ".tmp")) or "__pycache__" in root:
+                    if f.endswith((".pyc", ".pyo", ".tmp")):
                         continue
                     full_p = Path(root) / f
                     arcname = str(full_p.relative_to(ROOT))
@@ -138,7 +169,7 @@ def main() -> None:
 
     out_zip = ROOT / "deliverable.zip"
     bundle_deliverable_zip(out_zip)
-    print("\nDRDO TSS v1.0.0 deliverable bundle generation complete.")
+    print("\nDRDO TSS deliverable.zip bundle updated successfully.")
 
 
 if __name__ == "__main__":
