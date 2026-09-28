@@ -45,8 +45,12 @@
       // 3. Simulation Playback State
       const [isPlaying, setIsPlaying] = useState(true);
       const [simSpeed, setSimSpeed] = useState(1.0);
-      const [stepCount, setStepCount] = useState(0);
-      const [simTime, setSimTime] = useState(0);
+      const [hudTick, setHudTick] = useState(0);
+      const simTimeRef = useRef(0);
+      const stepCountRef = useRef(0);
+      const timeDisplayRef = useRef(null);
+      const stepDisplayRef = useRef(null);
+      const frameCountRef = useRef(0);
 
       // 4. Tactical Overlays
       const [toggles, setToggles] = useState({
@@ -175,8 +179,12 @@
         entitiesRef.current = result;
         const firstBlue = result.find(e => e.team === 'blue');
         if (firstBlue) setSelectedUnitId(firstBlue.id);
-        setStepCount(0);
-        setSimTime(0);
+        stepCountRef.current = 0;
+        simTimeRef.current = 0;
+        frameCountRef.current = 0;
+        if (timeDisplayRef.current) timeDisplayRef.current.textContent = 'TIME: 0.0s';
+        if (stepDisplayRef.current) stepDisplayRef.current.textContent = '0';
+        setHudTick(t => (t + 1) % 10000);
       }, []);
 
       // Initial Fleet Setup
@@ -294,8 +302,15 @@
         const ctx = canvas.getContext('2d');
 
         const renderLoop = () => {
-          const width = canvas.width = canvas.parentElement.clientWidth;
-          const height = canvas.height = canvas.parentElement.clientHeight;
+          if (!canvas.parentElement) return;
+          const pWidth = canvas.parentElement.clientWidth;
+          const pHeight = canvas.parentElement.clientHeight;
+          if (canvas.width !== pWidth || canvas.height !== pHeight) {
+            canvas.width = pWidth;
+            canvas.height = pHeight;
+          }
+          const width = canvas.width;
+          const height = canvas.height;
 
           const kmToCanvas = (xKm, yKm) => ({
             x: (xKm / MAP_KM) * width,
@@ -306,8 +321,22 @@
           // 1. PHYSICS UPDATE STEP
           // -------------------------------------------------------------
           if (isPlaying) {
-            setStepCount(prev => prev + 1);
-            setSimTime(prev => +(prev + 0.1).toFixed(1));
+            stepCountRef.current++;
+            simTimeRef.current += 0.02 * simSpeed;
+            frameCountRef.current++;
+
+            // High-frequency direct DOM update (eliminates React re-render flicker)
+            if (timeDisplayRef.current) {
+              timeDisplayRef.current.textContent = `TIME: ${simTimeRef.current.toFixed(1)}s`;
+            }
+            if (stepDisplayRef.current) {
+              stepDisplayRef.current.textContent = stepCountRef.current;
+            }
+
+            // Steady 5 Hz throttle for React state to update sidebar gauges calmly
+            if (frameCountRef.current % 12 === 0) {
+              setHudTick(t => (t + 1) % 10000);
+            }
 
             // Update Projectiles
             const projs = projectilesRef.current;
@@ -869,8 +898,13 @@
                   ● AI: 6,000 ITERS (100% WIN RATE)
                 </span>
               </div>
-              <span className={`text-xs px-2 py-1 rounded font-mono ${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-800 text-slate-300'}`}>
-                TIME: {simTime}s
+              <span
+                ref={timeDisplayRef}
+                className={`text-xs px-2.5 py-1 rounded font-mono font-bold tabular-nums inline-block min-w-[105px] text-center border ${
+                  isLight ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-slate-800 text-slate-300 border-slate-700'
+                }`}
+              >
+                TIME: {simTimeRef.current ? simTimeRef.current.toFixed(1) : '0.0'}s
               </span>
             </div>
 
@@ -1214,7 +1248,7 @@
           {/* =============================================================== */}
           <footer className={`h-10 border-t px-4 flex items-center justify-between text-xs font-mono z-10 shrink-0 ${bgHeader}`}>
             <div className="flex items-center space-x-3">
-              <span>STEP: <b className="text-sky-600 dark:text-sky-400">{stepCount}</b></span>
+              <span>STEP: <b ref={stepDisplayRef} className="text-sky-600 dark:text-sky-400">{stepCountRef.current || 0}</b></span>
               <span className={textMuted}>|</span>
               <span>MODE: <b className="text-emerald-500 font-bold">{isPlaying ? 'SIMULATE (50 Hz)' : 'PAUSED'}</b></span>
               <span className={`hidden md:inline ${textMuted}`}>|</span>
