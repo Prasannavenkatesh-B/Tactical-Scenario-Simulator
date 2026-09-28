@@ -3,1713 +3,1417 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DRDO TSS — Tactical Scenario Simulator (H-MARL 6,000 Iterations)</title>
+  <title>DRDO TSS — React Tactical Combat Simulator (H-MARL 6,000 Iterations)</title>
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React 18 & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Babel Standalone for in-browser JSX compilation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
   <style>
-    body { margin: 0; padding: 0; background: #070c18; color: #e2e8f0; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+    body { margin: 0; padding: 0; overflow: hidden; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     canvas { display: block; image-rendering: auto; }
-    .tactical-glass { background: rgba(13, 22, 41, 0.88); backdrop-filter: blur(8px); border: 1px solid rgba(56, 189, 248, 0.25); }
-    .tactical-border { border: 1px solid #1e293b; }
-    .glow-green { box-shadow: 0 0 15px rgba(34, 197, 94, 0.35); }
-    .glow-sky { box-shadow: 0 0 15px rgba(56, 189, 248, 0.35); }
-    .glow-amber { box-shadow: 0 0 15px rgba(245, 158, 11, 0.35); }
-    .glow-rose { box-shadow: 0 0 15px rgba(244, 63, 94, 0.35); }
+    .glow-green { box-shadow: 0 0 15px rgba(34, 197, 94, 0.4); }
+    .glow-sky { box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
+    .glow-amber { box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+    .glow-rose { box-shadow: 0 0 15px rgba(244, 63, 94, 0.4); }
     ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #091122; }
-    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 3px; }
   </style>
 </head>
-<body class="flex flex-col h-screen select-none text-slate-100">
+<body>
+  <!-- Root React Mounting Point -->
+  <div id="root"></div>
 
-  <!-- ===================================================================== -->
-  <!-- TOP COMMAND HEADER BAR -->
-  <!-- ===================================================================== -->
-  <header class="h-14 bg-slate-900/95 border-b border-slate-800 flex items-center justify-between px-3 md:px-4 z-20 shrink-0">
-    <div class="flex items-center space-x-2 md:space-x-3">
-      <div class="flex items-center space-x-2 bg-slate-800/90 px-2.5 py-1 rounded border border-slate-700/80">
-        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
-        <span class="font-black text-xs tracking-wider text-sky-400">DRDO TSS</span>
-      </div>
-      <div class="hidden lg:flex items-center space-x-2">
-        <span class="text-xs font-bold text-slate-200">TACTICAL RADAR</span>
-        <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-600/70 text-emerald-300 font-mono font-bold tracking-wide">
-          ● AI: 6,000 ITERS (100% WIN RATE)
-        </span>
-      </div>
-      <span class="text-xs px-2 py-1 rounded bg-slate-800 text-slate-300 font-mono" id="sim-time">TIME: 00:00.0</span>
-    </div>
+  <!-- React Application Source Code -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
 
-    <!-- 1-Click Interactive Map Selector Directly on Top Header -->
-    <div class="hidden md:flex items-center space-x-1 bg-slate-950/90 p-1 rounded-xl border border-slate-800">
-      <span class="text-[10px] font-black text-slate-500 uppercase px-1.5 tracking-wider">MAP:</span>
-      <button class="top-map-btn px-2.5 py-1 rounded text-xs font-bold transition bg-slate-800 text-slate-300 hover:text-white" data-map="archipelago">🏝️ Archipelago</button>
-      <button class="top-map-btn px-2.5 py-1 rounded text-xs font-bold transition bg-sky-600 text-white glow-sky" data-map="desert">🏜️ Desert Sands</button>
-      <button class="top-map-btn px-2.5 py-1 rounded text-xs font-bold transition bg-slate-800 text-slate-300 hover:text-white" data-map="mountain">⛰️ Mountain Ridge</button>
-      <button class="top-map-btn px-2.5 py-1 rounded text-xs font-bold transition bg-slate-800 text-slate-300 hover:text-white" data-map="ocean">🌊 Deep Ocean</button>
-    </div>
+    // =========================================================================
+    // MAIN REACT APP COMPONENT
+    // =========================================================================
+    function TacticalSimulatorApp() {
+      // 1. Theme State: 'dark' | 'light'
+      const [theme, setTheme] = useState('dark');
 
-    <!-- Center/Right Action Controls -->
-    <div class="flex items-center space-x-2">
-      <!-- Custom Battlespace Builder Button -->
-      <button id="btn-open-customizer" class="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-black text-xs px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition glow-amber">
-        <span>🛠️</span>
-        <span class="hidden sm:inline">CUSTOM FLEET BUILDER</span>
-        <span class="sm:hidden">FLEET</span>
-      </button>
+      // 2. Map & Environment State
+      const [mapTerrain, setMapTerrain] = useState('desert'); // archipelago | desert | mountain | ocean
 
-      <button id="btn-reset" class="bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition">
-        Reset
-      </button>
-      <button id="btn-play" class="bg-sky-600 hover:bg-sky-500 text-xs font-bold text-white px-4 py-1.5 rounded-lg transition">
-        Pause
-      </button>
-    </div>
-  </header>
+      // 3. Simulation Playback State
+      const [isPlaying, setIsPlaying] = useState(true);
+      const [simSpeed, setSimSpeed] = useState(1.0);
+      const [stepCount, setStepCount] = useState(0);
+      const [simTime, setSimTime] = useState(0);
 
-  <!-- ===================================================================== -->
-  <!-- MAIN WORKSPACE: RADAR VIEWPORT + RIGHT CONTROL DECK -->
-  <!-- ===================================================================== -->
-  <div class="flex flex-1 relative overflow-hidden">
-
-    <!-- Battlefield Canvas Container -->
-    <div class="flex-1 relative bg-slate-950 flex items-center justify-center overflow-hidden" id="canvas-container">
-      <canvas id="simCanvas" class="w-full h-full cursor-crosshair"></canvas>
-
-      <!-- Battlefield Overlay Info Pill -->
-      <div class="absolute top-4 left-4 tactical-glass rounded-xl p-3 text-xs font-mono space-y-1.5 text-slate-300 pointer-events-none z-10 shadow-xl">
-        <div class="flex items-center justify-between text-sky-400 font-bold border-b border-slate-800 pb-1">
-          <span id="hud-map-name" class="text-amber-400 font-black tracking-wide">MAP: 🏜️ SAHARA DESERT SANDS</span>
-          <span class="text-emerald-400 text-[10px] ml-3">● LIVE 50 Hz</span>
-        </div>
-        <div class="flex space-x-4 pt-0.5">
-          <div>Blue Forces: <span id="hud-blue-alive" class="text-sky-400 font-black text-sm">4</span> / <span id="hud-blue-count" class="text-slate-400">4</span></div>
-          <div>Red Forces: <span id="hud-red-alive" class="text-rose-400 font-black text-sm">4</span> / <span id="hud-red-count" class="text-slate-400">4</span></div>
-        </div>
-        <div class="text-[11px] text-slate-400 flex items-center space-x-1 pt-0.5">
-          <span>AI Doctrine:</span>
-          <span id="hud-doctrine" class="text-emerald-400 font-bold">MUTUAL COVER + RADAR FOCUS</span>
-        </div>
-      </div>
-
-      <!-- Quick Team Unit Selector Floating Strip (Bottom Center of Canvas) -->
-      <div class="absolute bottom-4 left-1/2 -translate-x-1/2 tactical-glass rounded-xl px-3 py-2 flex items-center space-x-2 z-10 shadow-2xl max-w-[90%] overflow-x-auto">
-        <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider mr-1 shrink-0">SWITCH UNIT:</span>
-        <div id="unit-selector-buttons" class="flex space-x-1.5 shrink-0">
-          <!-- Dynamically populated buttons -->
-        </div>
-      </div>
-
-      <!-- Visual Hit/Event Toast Notification -->
-      <div id="combat-toast" class="absolute top-4 right-4 pointer-events-none transition-all duration-300 opacity-0 translate-y-[-10px] bg-slate-900/95 border-2 border-amber-500 rounded-xl px-4 py-2.5 text-xs font-mono text-amber-200 z-10 shadow-2xl">
-        COMBAT EVENT
-      </div>
-    </div>
-
-    <!-- ===================================================================== -->
-    <!-- RIGHT-HAND CONTROL & TELEMETRY DECK -->
-    <!-- ===================================================================== -->
-    <aside class="w-96 bg-slate-900 border-l border-slate-800 flex flex-col p-3.5 space-y-3.5 overflow-y-auto z-10 shrink-0">
-
-      <!-- 1. ACTIVE UNIT COCKPIT / TURRET / HELM OVERRIDE -->
-      <div class="bg-slate-950 border-2 border-amber-500/70 rounded-xl p-3.5 glow-amber relative">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center space-x-1.5">
-            <span id="ctrl-domain-icon" class="text-xl">✈️</span>
-            <h3 id="ctrl-title" class="text-xs font-black text-amber-400 uppercase tracking-wider">
-              PILOT COCKPIT OVERRIDE
-            </h3>
-          </div>
-          <!-- Manual / Auto Mode Indicator -->
-          <button id="btn-toggle-manual" class="text-[10px] font-black px-2.5 py-1 rounded bg-amber-500 text-slate-950 glow-amber transition">
-            MANUAL (Player Active)
-          </button>
-        </div>
-
-        <p id="ctrl-instructions" class="text-[11px] text-slate-300 mb-2 font-medium">
-          Take manual steering & weapons control:
-        </p>
-
-        <!-- Directional D-Pad / Steering Controls -->
-        <div class="grid grid-cols-3 gap-1.5 text-center mb-2.5">
-          <div></div>
-          <button id="btn-fwd" class="bg-slate-800 hover:bg-slate-700 active:bg-sky-600 text-xs py-2 rounded-lg font-bold text-slate-200 border border-slate-700 transition">
-            ▲ ACCEL (W)
-          </button>
-          <div></div>
-          <button id="btn-left" class="bg-slate-800 hover:bg-slate-700 active:bg-sky-600 text-xs py-2 rounded-lg font-bold text-slate-200 border border-slate-700 transition">
-            ◀ TURN (A)
-          </button>
-          <div class="flex items-center justify-center">
-            <div id="steer-indicator" class="text-xs font-mono font-black text-amber-400 bg-slate-900 px-2 py-1 rounded border border-slate-800">90°</div>
-          </div>
-          <button id="btn-right" class="bg-slate-800 hover:bg-slate-700 active:bg-sky-600 text-xs py-2 rounded-lg font-bold text-slate-200 border border-slate-700 transition">
-            TURN ▶ (D)
-          </button>
-          <div></div>
-          <button id="btn-back" class="bg-slate-800 hover:bg-slate-700 active:bg-sky-600 text-xs py-2 rounded-lg font-bold text-slate-200 border border-slate-700 transition">
-            ▼ BRAKE (S)
-          </button>
-          <div></div>
-        </div>
-
-        <!-- WEAPONS FIRE CONTROLS -->
-        <div class="space-y-1.5">
-          <button id="btn-fire-primary" class="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:scale-95 text-slate-950 font-black text-xs py-2.5 rounded-lg shadow-lg transition flex items-center justify-center space-x-2">
-            <span id="lbl-primary-icon">🔫</span>
-            <span id="lbl-primary-weapon">FIRE 20MM CANNON [SPACE]</span>
-          </button>
-          <button id="btn-fire-secondary" class="w-full bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs py-2.5 rounded-lg shadow-lg transition flex items-center justify-center space-x-2">
-            <span id="lbl-secondary-icon">🚀</span>
-            <span id="lbl-secondary-weapon">LAUNCH FOX-3 MISSILE [F]</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- 2. SELECTED UNIT TELEMETRY INSPECTOR -->
-      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
-        <h3 class="text-xs font-bold text-sky-400 uppercase tracking-wider mb-2 flex items-center justify-between">
-          <span>Unit Telemetry</span>
-          <span id="target-team-badge" class="text-[10px] px-2 py-0.5 rounded font-bold bg-sky-900 text-sky-300">BLUE</span>
-        </h3>
-        <div id="telemetry-content" class="text-xs font-mono space-y-1.5 text-slate-300">
-          <div class="flex justify-between"><span class="text-slate-500">Callsign:</span> <span id="tel-id" class="text-white font-bold">blue_air_1</span></div>
-          <div class="flex justify-between"><span class="text-slate-500">Platform:</span> <span id="tel-class" class="text-sky-300">AC1 Fighter (AIR)</span></div>
-          <div class="flex justify-between"><span class="text-slate-500">Coordinates:</span> <span id="tel-pos">X: 30.0 km | Y: 30.0 km</span></div>
-          <div class="flex justify-between"><span class="text-slate-500">Velocity / Alt:</span> <span id="tel-speed">480 kts | 9.0 km</span></div>
-          <div class="flex justify-between"><span class="text-slate-500">Bearing:</span> <span id="tel-heading">90°</span></div>
-          <div class="flex justify-between"><span class="text-slate-500">Status:</span> <span id="tel-intent" class="text-emerald-400 font-bold">MANUAL_PLAYER_CONTROL</span></div>
-          
-          <div class="mt-2 pt-1 border-t border-slate-800">
-            <div class="flex justify-between text-[11px] mb-1">
-              <span>Armor / Integrity:</span>
-              <span id="tel-health-val" class="font-bold text-emerald-400">100%</span>
-            </div>
-            <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-              <div id="tel-health-bar" class="bg-emerald-500 h-full w-full transition-all duration-200"></div>
-            </div>
-          </div>
-
-          <div class="mt-2 flex justify-between text-[11px] pt-1.5 border-t border-slate-800">
-            <span>Primary Ammo: <b id="tel-cannon" class="text-white">200</b></span>
-            <span>Missiles: <b id="tel-missiles" class="text-rose-400 font-bold">4</b></span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 3. TACTICAL OVERLAY TOGGLES -->
-      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
-        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Tactical Overlays</h3>
-        <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer hover:text-white">
-          <input type="checkbox" id="chk-radar" checked class="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0">
-          <span>Show Radar Detection Cones</span>
-        </label>
-        <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer hover:text-white">
-          <input type="checkbox" id="chk-wez" checked class="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0">
-          <span>Show Weapon Engagement (WEZ) Cones</span>
-        </label>
-        <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer hover:text-white">
-          <input type="checkbox" id="chk-trails" checked class="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0">
-          <span>Show Trajectory & Evasive Trails</span>
-        </label>
-        <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer hover:text-white">
-          <input type="checkbox" id="chk-grid" checked class="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0">
-          <span>Show 10 km MGRS Tactical Grid</span>
-        </label>
-        <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer hover:text-white">
-          <input type="checkbox" id="chk-terrain" checked class="rounded bg-slate-800 border-slate-700 text-emerald-500 focus:ring-0">
-          <span>Show High-Contrast Map Topography</span>
-        </label>
-      </div>
-
-      <!-- 4. SIMULATION PACING -->
-      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
-        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Simulation Pacing</h3>
-        <div class="grid grid-cols-4 gap-1.5 text-xs">
-          <button class="speed-btn bg-slate-800 py-1.5 rounded-lg text-slate-300 font-bold" data-speed="0.5">0.5x</button>
-          <button class="speed-btn bg-sky-600 py-1.5 rounded-lg text-white font-bold" data-speed="1.0">1.0x</button>
-          <button class="speed-btn bg-slate-800 py-1.5 rounded-lg text-slate-300 font-bold" data-speed="2.0">2.0x</button>
-          <button class="speed-btn bg-slate-800 py-1.5 rounded-lg text-slate-300 font-bold" data-speed="5.0">5.0x</button>
-        </div>
-      </div>
-    </aside>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- BOTTOM STATUS & KEYBOARD HINTS FOOTER -->
-  <!-- ===================================================================== -->
-  <footer class="h-10 bg-slate-900 border-t border-slate-800 px-4 flex items-center justify-between text-xs text-slate-400 font-mono z-10 shrink-0">
-    <div class="flex items-center space-x-3">
-      <span>STEP: <b id="sim-step" class="text-sky-400">0</b> / 500</span>
-      <span class="text-slate-600">|</span>
-      <span>STATUS: <b id="sim-mode" class="text-emerald-400 font-bold">SIMULATE (50 Hz)</b></span>
-      <span class="text-slate-600 hidden md:inline">|</span>
-      <span class="text-slate-400 hidden md:inline">Production Checkpoint: <b class="text-white">checkpoint_final.pt (6,000 Iters)</b></span>
-    </div>
-    <div class="hidden lg:flex items-center space-x-3">
-      <span class="text-slate-500">Controls: [W/A/S/D] Steer | [Space] Fire Gun/Shell | [F] Missile | [1-9] Switch Unit</span>
-    </div>
-  </footer>
-
-  <!-- ===================================================================== -->
-  <!-- MODAL: CUSTOM BATTLESPACE & FLEET BUILDER -->
-  <!-- ===================================================================== -->
-  <div id="customizer-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
-      
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div>
-          <h2 class="text-lg font-black text-amber-400 flex items-center space-x-2">
-            <span>🛠️</span>
-            <span>CUSTOM BATTLESPACE & FLEET BUILDER</span>
-          </h2>
-          <p class="text-xs text-slate-400">Choose terrain map and customize Blue (Friendly) & Red (Enemy) arm soldiers and vehicles.</p>
-        </div>
-        <button id="btn-close-modal" class="text-slate-400 hover:text-white text-xl font-bold p-1">✕</button>
-      </div>
-
-      <!-- Step 1: Select Map Terrain -->
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-sky-400 mb-2">1. Select Battlefield Map Terrain</label>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          <div class="map-card cursor-pointer border border-slate-800 bg-slate-950 rounded-xl p-3 text-center transition flex flex-col items-center hover:border-slate-600" data-map="archipelago">
-            <span class="text-2xl mb-1">🏝️</span>
-            <span class="text-xs font-bold text-white">Archipelago</span>
-            <span class="text-[10px] text-slate-400">Islands & Sea Straits</span>
-          </div>
-          <div class="map-card cursor-pointer border-2 border-sky-500 bg-sky-950/60 rounded-xl p-3 text-center transition flex flex-col items-center glow-sky" data-map="desert">
-            <span class="text-2xl mb-1">🏜️</span>
-            <span class="text-xs font-bold text-white">Desert Sands</span>
-            <span class="text-[10px] text-slate-400">Open Armor Dunes</span>
-          </div>
-          <div class="map-card cursor-pointer border border-slate-800 bg-slate-950 rounded-xl p-3 text-center transition flex flex-col items-center hover:border-slate-600" data-map="mountain">
-            <span class="text-2xl mb-1">⛰️</span>
-            <span class="text-xs font-bold text-white">Mountain Ridge</span>
-            <span class="text-[10px] text-slate-400">Radar Terrain Masking</span>
-          </div>
-          <div class="map-card cursor-pointer border border-slate-800 bg-slate-950 rounded-xl p-3 text-center transition flex flex-col items-center hover:border-slate-600" data-map="ocean">
-            <span class="text-2xl mb-1">🌊</span>
-            <span class="text-xs font-bold text-white">Deep Ocean</span>
-            <span class="text-[10px] text-slate-400">Naval Fleet Arena</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 2: Army Customizer (Blue vs Red) -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        
-        <!-- Blue Forces (Your Side) -->
-        <div class="bg-slate-950 border border-sky-900/60 rounded-xl p-4 space-y-3">
-          <div class="flex items-center justify-between border-b border-sky-900/40 pb-2">
-            <span class="font-black text-xs text-sky-400 tracking-wide flex items-center space-x-1.5">
-              <span>🔵</span>
-              <span>BLUE FORCES (YOUR SIDE)</span>
-            </span>
-            <span class="text-[11px] text-sky-300 font-mono font-bold" id="builder-blue-total">4 Units</span>
-          </div>
-
-          <!-- Unit row: AC1 Jet -->
-          <div class="flex items-center justify-between text-xs">
-            <div>
-              <div class="font-bold text-white">✈️ AC1 Air Fighters</div>
-              <div class="text-[10px] text-slate-400">Vulcan Cannon + Fox-2/3 Missiles</div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="blue-ac1" data-delta="-1">-</button>
-              <span id="blue-ac1-val" class="font-mono font-bold text-sm w-4 text-center">1</span>
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="blue-ac1" data-delta="1">+</button>
-            </div>
-          </div>
-
-          <!-- Unit row: AC2 Interceptor -->
-          <div class="flex items-center justify-between text-xs">
-            <div>
-              <div class="font-bold text-white">🚀 AC2 Interceptors</div>
-              <div class="text-[10px] text-slate-400">High Altitude BVR Radar Sweeper</div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="blue-ac2" data-delta="-1">-</button>
-              <span id="blue-ac2-val" class="font-mono font-bold text-sm w-4 text-center">1</span>
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="blue-ac2" data-delta="1">+</button>
-            </div>
-          </div>
-
-          <!-- Unit row: Ground SAM Tank -->
-          <div class="flex items-center justify-between text-xs">
-            <div>
-              <div class="font-bold text-white">🛡️ SAM Tanks / Air Defense</div>
-              <div class="text-[10px] text-slate-400">Surface-to-Air Guided Missiles</div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="blue-tank" data-delta="-1">-</button>
-              <span id="blue-tank-val" class="font-mono font-bold text-sm w-4 text-center">1</span>
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="blue-tank" data-delta="1">+</button>
-            </div>
-          </div>
-
-          <!-- Unit row: Naval Frigate -->
-          <div class="flex items-center justify-between text-xs">
-            <div>
-              <div class="font-bold text-white">🚢 Naval Combat Frigates</div>
-              <div class="text-[10px] text-slate-400">Deck Gun + Anti-Ship Cruise Missiles</div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="blue-ship" data-delta="-1">-</button>
-              <span id="blue-ship-val" class="font-mono font-bold text-sm w-4 text-center">1</span>
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="blue-ship" data-delta="1">+</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Red Forces (Enemy Side) -->
-        <div class="bg-slate-950 border border-rose-900/60 rounded-xl p-4 space-y-3">
-          <div class="flex items-center justify-between border-b border-rose-900/40 pb-2">
-            <span class="font-black text-xs text-rose-400 tracking-wide flex items-center space-x-1.5">
-              <span>🔴</span>
-              <span>RED FORCES (ENEMY SIDE)</span>
-            </span>
-            <span class="text-[11px] text-rose-300 font-mono font-bold" id="builder-red-total">4 Units</span>
-          </div>
-
-          <!-- Unit row: Red AC1 Jet -->
-          <div class="flex items-center justify-between text-xs">
-            <div>
-              <div class="font-bold text-white">✈️ Red Air Fighters</div>
-              <div class="text-[10px] text-slate-400">Aggressive Intercept Dogfighters</div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="red-ac1" data-delta="-1">-</button>
-              <span id="red-ac1-val" class="font-mono font-bold text-sm w-4 text-center">1</span>
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="red-ac1" data-delta="1">+</button>
-            </div>
-          </div>
-
-          <!-- Unit row: Red AC2 Interceptor -->
-          <div class="flex items-center justify-between text-xs">
-            <div>
-              <div class="font-bold text-white">🚀 Red Interceptors</div>
-              <div class="text-[10px] text-slate-400">BVR Long-Range Standoff</div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="red-ac2" data-delta="-1">-</button>
-              <span id="red-ac2-val" class="font-mono font-bold text-sm w-4 text-center">1</span>
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="red-ac2" data-delta="1">+</button>
-            </div>
-          </div>
-
-          <!-- Unit row: Red Ground SAM Tank -->
-          <div class="flex items-center justify-between text-xs">
-            <div>
-              <div class="font-bold text-white">🛡️ Red SAM Armor</div>
-              <div class="text-[10px] text-slate-400">Fortified Air Defense Batteries</div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="red-tank" data-delta="-1">-</button>
-              <span id="red-tank-val" class="font-mono font-bold text-sm w-4 text-center">1</span>
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="red-tank" data-delta="1">+</button>
-            </div>
-          </div>
-
-          <!-- Unit row: Red Naval Warship -->
-          <div class="flex items-center justify-between text-xs">
-            <div>
-              <div class="font-bold text-white">🚢 Red Missile Corvettes</div>
-              <div class="text-[10px] text-slate-400">Coastal Defense Gunboats</div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="red-ship" data-delta="-1">-</button>
-              <span id="red-ship-val" class="font-mono font-bold text-sm w-4 text-center">1</span>
-              <button class="cnt-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-200 font-bold" data-target="red-ship" data-delta="1">+</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Preset Buttons -->
-      <div>
-        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Quick Army Presets</label>
-        <div class="flex flex-wrap gap-2 text-xs">
-          <button class="preset-btn bg-slate-800 hover:bg-slate-700 text-sky-300 px-3 py-1.5 rounded-lg border border-slate-700 font-bold" data-preset="joint">
-            ⚡ Tri-Service Combined Arms
-          </button>
-          <button class="preset-btn bg-slate-800 hover:bg-slate-700 text-amber-300 px-3 py-1.5 rounded-lg border border-slate-700 font-bold" data-preset="air">
-            ✈️ Pure Air Dogfight (3v3 Jets)
-          </button>
-          <button class="preset-btn bg-slate-800 hover:bg-slate-700 text-emerald-300 px-3 py-1.5 rounded-lg border border-slate-700 font-bold" data-preset="tanks">
-            🛡️ Armor Blitz (Tanks vs SAMs)
-          </button>
-          <button class="preset-btn bg-slate-800 hover:bg-slate-700 text-blue-300 px-3 py-1.5 rounded-lg border border-slate-700 font-bold" data-preset="naval">
-            🚢 Naval Task Force (Ships + Air Cover)
-          </button>
-        </div>
-      </div>
-
-      <!-- Launch Button -->
-      <div class="border-t border-slate-800 pt-3">
-        <button id="btn-deploy-custom" class="w-full bg-gradient-to-r from-emerald-500 to-sky-500 hover:from-emerald-400 hover:to-sky-400 text-slate-950 font-black text-sm py-3 rounded-xl shadow-lg transition glow-green flex items-center justify-center space-x-2">
-          <span>🚀</span>
-          <span>DEPLOY CUSTOM BATTLESPACE NOW</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- JAVASCRIPT SIMULATION ENGINE -->
-  <!-- ===================================================================== -->
-  <script>
-    const canvas = document.getElementById('simCanvas');
-    const ctx = canvas.getContext('2d');
-    let width, height;
-
-    function resize() {
-      width = canvas.width = canvas.parentElement.clientWidth;
-      height = canvas.height = canvas.parentElement.clientHeight;
-    }
-    window.addEventListener('resize', resize);
-    resize();
-
-    const MAP_KM = 100.0;
-    let isPlaying = true;
-    let simSpeed = 1.0;
-    let stepCount = 0;
-    let activeMapTerrain = 'desert'; // default: desert
-
-    let entities = [];
-    let projectiles = [];
-    let explosions = [];
-    let damageTexts = [];
-    let selectedUnitId = null;
-    let manualOverride = true; // default: manual active so user can immediately drive/fire!
-
-    const toggles = {
-      radar: true,
-      wez: true,
-      trails: true,
-      grid: true,
-      terrain: true
-    };
-
-    let fleetConfig = {
-      blue: { ac1: 1, ac2: 1, tank: 1, ship: 1 },
-      red:   { ac1: 1, ac2: 1, tank: 1, ship: 1 }
-    };
-
-    function kmToCanvas(xKm, yKm) {
-      return {
-        x: (xKm / MAP_KM) * width,
-        y: (yKm / MAP_KM) * height
-      };
-    }
-    function canvasToKm(cx, cy) {
-      return {
-        x: (cx / width) * MAP_KM,
-        y: (cy / height) * MAP_KM
-      };
-    }
-
-    // =====================================================================
-    // MAP TERRAIN SWITCHER
-    // =====================================================================
-    function setMapTerrain(terrain) {
-      activeMapTerrain = terrain;
-
-      // 1. Update top map buttons
-      document.querySelectorAll('.top-map-btn').forEach(btn => {
-        if (btn.dataset.map === terrain) {
-          btn.className = 'top-map-btn px-2.5 py-1 rounded text-xs font-bold transition bg-sky-600 text-white glow-sky';
-        } else {
-          btn.className = 'top-map-btn px-2.5 py-1 rounded text-xs font-bold transition bg-slate-800 text-slate-300 hover:text-white';
-        }
+      // 4. Tactical Overlays
+      const [toggles, setToggles] = useState({
+        radar: true,
+        wez: true,
+        trails: true,
+        grid: true,
+        terrain: true
       });
 
-      // 2. Update modal map cards
-      document.querySelectorAll('.map-card').forEach(card => {
-        if (card.dataset.map === terrain) {
-          card.className = 'map-card cursor-pointer border-2 border-sky-500 bg-sky-950/60 rounded-xl p-3 text-center transition flex flex-col items-center glow-sky';
-        } else {
-          card.className = 'map-card cursor-pointer border border-slate-800 bg-slate-950 rounded-xl p-3 text-center transition flex flex-col items-center hover:border-slate-600';
-        }
+      // 5. Army Fleet Customizer Config
+      const [fleetConfig, setFleetConfig] = useState({
+        blue: { ac1: 1, ac2: 1, tank: 1, ship: 1 },
+        red:   { ac1: 1, ac2: 1, tank: 1, ship: 1 }
       });
+      const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
 
-      // 3. Update HUD name
-      const names = {
-        archipelago: '🏝️ COASTAL ARCHIPELAGO',
-        desert: '🏜️ SAHARA DESERT SANDS',
-        mountain: '⛰️ HIMALAYAN MOUNTAIN RIDGE',
-        ocean: '🌊 PACIFIC DEEP OCEAN'
-      };
-      document.getElementById('hud-map-name').innerText = `MAP: ${names[terrain] || terrain.toUpperCase()}`;
-      showToast(`🗺️ Map Switched to ${names[terrain] || terrain.toUpperCase()}`);
-    }
+      // 6. Selected Unit & Manual Practice Override State
+      const [selectedUnitId, setSelectedUnitId] = useState('blue_air_1');
+      const [manualOverride, setManualOverride] = useState(true); // default true for instant practice!
 
-    // Setup direct top header map switcher buttons
-    document.querySelectorAll('.top-map-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        setMapTerrain(e.currentTarget.dataset.map);
-      });
-    });
+      // 7. Toast Notification State
+      const [toast, setToast] = useState({ text: '', visible: false });
+      const toastTimerRef = useRef(null);
 
-    // Setup modal map card selection
-    document.querySelectorAll('.map-card').forEach(card => {
-      card.addEventListener('click', (e) => {
-        setMapTerrain(e.currentTarget.dataset.map);
-      });
-    });
+      // 8. Simulation Data Refs (High frequency 50-60 Hz loop)
+      const entitiesRef = useRef([]);
+      const projectilesRef = useRef([]);
+      const explosionsRef = useRef([]);
+      const damageTextsRef = useRef([]);
+      const canvasRef = useRef(null);
+      const MAP_KM = 100.0;
 
-    // =====================================================================
-    // FORMATION SPAWNING: SPREAD UNITS EVENLY TO PREVENT CLUMPING
-    // =====================================================================
-    function buildFleetEntities() {
-      projectiles = [];
-      explosions = [];
-      damageTexts = [];
-      const result = [];
+      // Toast notification helper
+      const showToast = useCallback((msg) => {
+        setToast({ text: msg, visible: true });
+        clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = setTimeout(() => {
+          setToast(prev => ({ ...prev, visible: false }));
+        }, 1800);
+      }, []);
 
-      // BLUE TEAM (West side, X: 15 to 30 km, heading East 90 deg)
-      let bAirIdx = 1;
-      const bTotalAir = fleetConfig.blue.ac1 + fleetConfig.blue.ac2;
-      for (let i = 0; i < fleetConfig.blue.ac1; i++) {
-        const yPos = 14 + (i * 30) / Math.max(1, fleetConfig.blue.ac1);
-        result.push({
-          id: `blue_air_${bAirIdx++}`, team: 'blue', domain: 'air', class: 'AC1 Air Fighter',
-          x: 18 + (i % 2) * 8, y: yPos, heading: 90, speed: 480, alt: 9.0,
-          health: 100, maxHealth: 100, ammo: 250, missiles: 4, intent: 'BVR_FOX3_ENGAGE', trail: []
-        });
-      }
-      for (let i = 0; i < fleetConfig.blue.ac2; i++) {
-        const yPos = 20 + (i * 26) / Math.max(1, fleetConfig.blue.ac2);
-        result.push({
-          id: `blue_air_${bAirIdx++}`, team: 'blue', domain: 'air', class: 'AC2 Interceptor',
-          x: 12 + (i % 2) * 6, y: yPos, heading: 90, speed: 430, alt: 11.0,
-          health: 100, maxHealth: 100, ammo: 200, missiles: 2, intent: 'RADAR_SWEEP_SCAN', trail: []
-        });
-      }
+      // Build initial fleet based on fleetConfig & mapTerrain
+      const initFleet = useCallback((config, terrain) => {
+        projectilesRef.current = [];
+        explosionsRef.current = [];
+        damageTextsRef.current = [];
+        const result = [];
 
-      // Blue Tanks (Ground Corridor: Y = 48 to 70 km)
-      let bGIdx = 1;
-      for (let i = 0; i < fleetConfig.blue.tank; i++) {
-        const yPos = 50 + (i * 20) / Math.max(1, fleetConfig.blue.tank);
-        result.push({
-          id: `blue_tank_${bGIdx++}`, team: 'blue', domain: 'ground', class: 'SAM Mobile Tank',
-          x: 20 + (i % 3) * 6, y: yPos, heading: 45, speed: 35, alt: 0.1,
-          health: 120, maxHealth: 120, ammo: 80, missiles: 8, intent: 'MUTUAL_AIR_DEFENSE', trail: []
-        });
-      }
-
-      // Blue Ships (Water Channel / Coast: Y = 75 to 92 km)
-      let bSIdx = 1;
-      for (let i = 0; i < fleetConfig.blue.ship; i++) {
-        const yPos = 76 + (i * 15) / Math.max(1, fleetConfig.blue.ship);
-        result.push({
-          id: `blue_ship_${bSIdx++}`, team: 'blue', domain: 'sea',
-          class: activeMapTerrain === 'desert' ? 'Heavy Land Cruiser' : 'Naval Combat Frigate',
-          x: 16 + (i % 3) * 8, y: yPos, heading: 60, speed: 28, alt: 0.0,
-          health: 180, maxHealth: 180, ammo: 150, missiles: 16, intent: 'FLEET_ESCORT_SCREEN', trail: []
-        });
-      }
-
-      // RED TEAM (East side, X: 70 to 88 km, heading West 270 deg)
-      let rAirIdx = 1;
-      for (let i = 0; i < fleetConfig.red.ac1; i++) {
-        const yPos = 14 + (i * 30) / Math.max(1, fleetConfig.red.ac1);
-        result.push({
-          id: `red_air_${rAirIdx++}`, team: 'red', domain: 'air', class: 'AC1 Air Fighter',
-          x: 82 - (i % 2) * 8, y: yPos, heading: 270, speed: 480, alt: 9.0,
-          health: 100, maxHealth: 100, ammo: 250, missiles: 4, intent: 'AGGRESSIVE_INTERCEPT', trail: []
-        });
-      }
-      for (let i = 0; i < fleetConfig.red.ac2; i++) {
-        const yPos = 20 + (i * 26) / Math.max(1, fleetConfig.red.ac2);
-        result.push({
-          id: `red_air_${rAirIdx++}`, team: 'red', domain: 'air', class: 'AC2 Interceptor',
-          x: 88 - (i % 2) * 6, y: yPos, heading: 270, speed: 430, alt: 11.0,
-          health: 100, maxHealth: 100, ammo: 200, missiles: 2, intent: 'STANDOFF_MISSILE_FIRE', trail: []
-        });
-      }
-
-      // Red Tanks (Ground Corridor: Y = 48 to 70 km)
-      let rGIdx = 1;
-      for (let i = 0; i < fleetConfig.red.tank; i++) {
-        const yPos = 50 + (i * 20) / Math.max(1, fleetConfig.red.tank);
-        result.push({
-          id: `red_tank_${rGIdx++}`, team: 'red', domain: 'ground', class: 'SAM Mobile Tank',
-          x: 80 - (i % 3) * 6, y: yPos, heading: 225, speed: 30, alt: 0.1,
-          health: 120, maxHealth: 120, ammo: 80, missiles: 8, intent: 'FORTIFIED_SAM_AMBUSH', trail: []
-        });
-      }
-
-      // Red Ships (Water Channel / Coast: Y = 75 to 92 km)
-      let rSIdx = 1;
-      for (let i = 0; i < fleetConfig.red.ship; i++) {
-        const yPos = 76 + (i * 15) / Math.max(1, fleetConfig.red.ship);
-        result.push({
-          id: `red_ship_${rSIdx++}`, team: 'red', domain: 'sea',
-          class: activeMapTerrain === 'desert' ? 'Armored Land Cruiser' : 'Missile Corvette',
-          x: 84 - (i % 3) * 8, y: yPos, heading: 240, speed: 30, alt: 0.0,
-          health: 180, maxHealth: 180, ammo: 150, missiles: 12, intent: 'STANDOFF_FIRE', trail: []
-        });
-      }
-
-      const firstBlue = result.find(e => e.team === 'blue');
-      selectedUnitId = firstBlue ? firstBlue.id : (result[0] ? result[0].id : null);
-      return result;
-    }
-
-    // Initialize Default Scenario
-    entities = buildFleetEntities();
-    renderUnitSelectorStrip();
-    updateControlsUI();
-    setMapTerrain('desert');
-
-    // =====================================================================
-    // WEAPONS & COMBAT EXECUTION
-    // =====================================================================
-    function triggerWeaponFire(unit, weaponCategory) {
-      if (!unit || unit.health <= 0) return;
-
-      if (weaponCategory === 'primary') {
-        if (unit.ammo <= 0) {
-          showToast(`⚠️ ${unit.id}: Ammo Depleted!`);
-          return;
+        // Blue Forces (West side: X = 15 to 32 km)
+        let bAir = 1;
+        for (let i = 0; i < config.blue.ac1; i++) {
+          const yPos = 14 + (i * 30) / Math.max(1, config.blue.ac1);
+          result.push({
+            id: `blue_air_${bAir++}`, team: 'blue', domain: 'air', class: 'AC1 Air Fighter',
+            x: 18 + (i % 2) * 8, y: yPos, heading: 90, speed: 480, alt: 9.0,
+            health: 100, maxHealth: 100, ammo: 250, missiles: 4, intent: 'BVR_FOX3_ENGAGE', trail: []
+          });
         }
-        unit.ammo = Math.max(0, unit.ammo - (unit.domain === 'ground' ? 1 : 5));
-
-        const rad = (unit.heading * Math.PI) / 180;
-        projectiles.push({
-          x: unit.x + Math.sin(rad) * 1.5,
-          y: unit.y - Math.cos(rad) * 1.5,
-          heading: unit.heading + (Math.random() - 0.5) * 4,
-          speed: unit.domain === 'air' ? 1400 : (unit.domain === 'ground' ? 1100 : 1200),
-          damage: unit.domain === 'air' ? 14 : (unit.domain === 'ground' ? 35 : 28),
-          team: unit.team,
-          type: 'bullet',
-          life: 30,
-          sourceId: unit.id
-        });
-        showToast(`💥 ${unit.id} Fired ${unit.domain === 'ground' ? 'Tank 120mm Shell' : (unit.domain === 'sea' ? '76mm Gun' : '20mm Vulcan')}`);
-
-      } else if (weaponCategory === 'secondary') {
-        if (unit.missiles <= 0) {
-          showToast(`⚠️ ${unit.id}: No Missiles Remaining!`);
-          return;
+        for (let i = 0; i < config.blue.ac2; i++) {
+          const yPos = 20 + (i * 26) / Math.max(1, config.blue.ac2);
+          result.push({
+            id: `blue_air_${bAir++}`, team: 'blue', domain: 'air', class: 'AC2 Interceptor',
+            x: 12 + (i % 2) * 6, y: yPos, heading: 90, speed: 430, alt: 11.0,
+            health: 100, maxHealth: 100, ammo: 200, missiles: 2, intent: 'RADAR_SWEEP_SCAN', trail: []
+          });
         }
-        unit.missiles = Math.max(0, unit.missiles - 1);
-
-        const rad = (unit.heading * Math.PI) / 180;
-        projectiles.push({
-          x: unit.x + Math.sin(rad) * 2.5,
-          y: unit.y - Math.cos(rad) * 2.5,
-          heading: unit.heading,
-          speed: 850,
-          damage: unit.domain === 'air' ? 50 : (unit.domain === 'ground' ? 65 : 75),
-          team: unit.team,
-          type: 'missile',
-          life: 95,
-          trail: [],
-          sourceId: unit.id
-        });
-        showToast(`🚀 ${unit.id} Launched ${unit.domain === 'ground' ? 'SAM Missile' : (unit.domain === 'sea' ? 'Cruise Missile' : 'Fox-3 Missile')}!`);
-      }
-      updateTelemetryUI();
-    }
-
-    function showToast(msg) {
-      const toast = document.getElementById('combat-toast');
-      toast.innerText = msg;
-      toast.style.opacity = '1';
-      toast.style.transform = 'translateY(0px)';
-      clearTimeout(window.toastTimer);
-      window.toastTimer = setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(-10px)';
-      }, 1600);
-    }
-
-    // =====================================================================
-    // PHYSICS, AI & DAMAGE PIPELINE
-    // =====================================================================
-    function updatePhysics() {
-      if (!isPlaying) return;
-
-      stepCount++;
-      document.getElementById('sim-step').innerText = stepCount;
-      const seconds = (stepCount * 0.1).toFixed(1);
-      document.getElementById('sim-time').innerText = `TIME: ${seconds}s`;
-
-      // 1. Update Projectiles
-      for (let i = projectiles.length - 1; i >= 0; i--) {
-        const p = projectiles[i];
-        const rad = (p.heading * Math.PI) / 180;
-        p.x += Math.sin(rad) * p.speed * 0.04;
-        p.y -= Math.cos(rad) * p.speed * 0.04;
-        p.life--;
-
-        if (p.type === 'missile' && p.trail) {
-          p.trail.push({ x: p.x, y: p.y });
-          if (p.trail.length > 12) p.trail.shift();
+        let bTank = 1;
+        for (let i = 0; i < config.blue.tank; i++) {
+          const yPos = 50 + (i * 20) / Math.max(1, config.blue.tank);
+          result.push({
+            id: `blue_tank_${bTank++}`, team: 'blue', domain: 'ground', class: 'SAM Mobile Tank',
+            x: 20 + (i % 3) * 6, y: yPos, heading: 45, speed: 35, alt: 0.1,
+            health: 120, maxHealth: 120, ammo: 80, missiles: 8, intent: 'MUTUAL_AIR_DEFENSE', trail: []
+          });
+        }
+        let bShip = 1;
+        for (let i = 0; i < config.blue.ship; i++) {
+          const yPos = 76 + (i * 15) / Math.max(1, config.blue.ship);
+          result.push({
+            id: `blue_ship_${bShip++}`, team: 'blue', domain: 'sea',
+            class: terrain === 'desert' ? 'Heavy Land Cruiser' : 'Naval Combat Frigate',
+            x: 16 + (i % 3) * 8, y: yPos, heading: 60, speed: 28, alt: 0.0,
+            health: 180, maxHealth: 180, ammo: 150, missiles: 16, intent: 'FLEET_ESCORT_SCREEN', trail: []
+          });
         }
 
-        // Check Target Hit
-        entities.forEach(target => {
-          if (target.team !== p.team && target.health > 0) {
-            const hitDist = Math.hypot(target.x - p.x, target.y - p.y);
-            const hitThreshold = target.domain === 'sea' ? 4.5 : (target.domain === 'ground' ? 3.5 : 2.5);
+        // Red Forces (East side: X = 68 to 86 km)
+        let rAir = 1;
+        for (let i = 0; i < config.red.ac1; i++) {
+          const yPos = 14 + (i * 30) / Math.max(1, config.red.ac1);
+          result.push({
+            id: `red_air_${rAir++}`, team: 'red', domain: 'air', class: 'AC1 Air Fighter',
+            x: 82 - (i % 2) * 8, y: yPos, heading: 270, speed: 480, alt: 9.0,
+            health: 100, maxHealth: 100, ammo: 250, missiles: 4, intent: 'AGGRESSIVE_INTERCEPT', trail: []
+          });
+        }
+        for (let i = 0; i < config.red.ac2; i++) {
+          const yPos = 20 + (i * 26) / Math.max(1, config.red.ac2);
+          result.push({
+            id: `red_air_${rAir++}`, team: 'red', domain: 'air', class: 'AC2 Interceptor',
+            x: 88 - (i % 2) * 6, y: yPos, heading: 270, speed: 430, alt: 11.0,
+            health: 100, maxHealth: 100, ammo: 200, missiles: 2, intent: 'STANDOFF_MISSILE_FIRE', trail: []
+          });
+        }
+        let rTank = 1;
+        for (let i = 0; i < config.red.tank; i++) {
+          const yPos = 50 + (i * 20) / Math.max(1, config.red.tank);
+          result.push({
+            id: `red_tank_${rTank++}`, team: 'red', domain: 'ground', class: 'SAM Mobile Tank',
+            x: 80 - (i % 3) * 6, y: yPos, heading: 225, speed: 30, alt: 0.1,
+            health: 120, maxHealth: 120, ammo: 80, missiles: 8, intent: 'FORTIFIED_SAM_AMBUSH', trail: []
+          });
+        }
+        let rShip = 1;
+        for (let i = 0; i < config.red.ship; i++) {
+          const yPos = 76 + (i * 15) / Math.max(1, config.red.ship);
+          result.push({
+            id: `red_ship_${rShip++}`, team: 'red', domain: 'sea',
+            class: terrain === 'desert' ? 'Armored Land Cruiser' : 'Missile Corvette',
+            x: 84 - (i % 3) * 8, y: yPos, heading: 240, speed: 30, alt: 0.0,
+            health: 180, maxHealth: 180, ammo: 150, missiles: 12, intent: 'STANDOFF_FIRE', trail: []
+          });
+        }
 
-            if (hitDist < hitThreshold) {
-              target.health = Math.max(0, target.health - p.damage);
-              p.life = 0;
+        entitiesRef.current = result;
+        const firstBlue = result.find(e => e.team === 'blue');
+        if (firstBlue) setSelectedUnitId(firstBlue.id);
+        setStepCount(0);
+        setSimTime(0);
+      }, []);
 
-              explosions.push({
-                x: target.x, y: target.y,
-                radius: p.type === 'missile' ? 24 : 12,
-                maxRadius: p.type === 'missile' ? 40 : 20,
-                color: p.type === 'missile' ? '#f97316' : '#fef08a',
-                life: 25
+      // Initial Fleet Setup
+      useEffect(() => {
+        initFleet(fleetConfig, mapTerrain);
+      }, []);
+
+      // Get Active Selected Unit
+      const activeUnit = entitiesRef.current.find(e => e.id === selectedUnitId) || entitiesRef.current[0];
+
+      // =======================================================================
+      // WEAPONS FIRE & MANUAL CONTROLS
+      // =======================================================================
+      const fireWeapon = useCallback((category) => {
+        const unit = entitiesRef.current.find(e => e.id === selectedUnitId);
+        if (!unit || unit.health <= 0) return;
+
+        if (category === 'primary') {
+          if (unit.ammo <= 0) {
+            showToast(`⚠️ ${unit.id}: Ammo Depleted!`);
+            return;
+          }
+          unit.ammo = Math.max(0, unit.ammo - (unit.domain === 'ground' ? 1 : 5));
+          const rad = (unit.heading * Math.PI) / 180;
+          projectilesRef.current.push({
+            x: unit.x + Math.sin(rad) * 1.5,
+            y: unit.y - Math.cos(rad) * 1.5,
+            heading: unit.heading + (Math.random() - 0.5) * 4,
+            speed: unit.domain === 'air' ? 1400 : (unit.domain === 'ground' ? 1100 : 1200),
+            damage: unit.domain === 'air' ? 14 : (unit.domain === 'ground' ? 35 : 28),
+            team: unit.team,
+            type: 'bullet',
+            life: 30,
+            sourceId: unit.id
+          });
+          showToast(`💥 ${unit.id} Fired ${unit.domain === 'ground' ? '120mm Tank Shell' : (unit.domain === 'sea' ? '76mm Gun' : '20mm Vulcan')}`);
+
+        } else if (category === 'secondary') {
+          if (unit.missiles <= 0) {
+            showToast(`⚠️ ${unit.id}: Out of Missiles!`);
+            return;
+          }
+          unit.missiles = Math.max(0, unit.missiles - 1);
+          const rad = (unit.heading * Math.PI) / 180;
+          projectilesRef.current.push({
+            x: unit.x + Math.sin(rad) * 2.5,
+            y: unit.y - Math.cos(rad) * 2.5,
+            heading: unit.heading,
+            speed: 850,
+            damage: unit.domain === 'air' ? 50 : (unit.domain === 'ground' ? 65 : 75),
+            team: unit.team,
+            type: 'missile',
+            life: 95,
+            trail: [],
+            sourceId: unit.id
+          });
+          showToast(`🚀 ${unit.id} Launched ${unit.domain === 'ground' ? 'SAM Missile' : (unit.domain === 'sea' ? 'Cruise Missile' : 'Fox-3 Missile')}!`);
+        }
+      }, [selectedUnitId, showToast]);
+
+      const steerManual = useCallback((action) => {
+        setManualOverride(true);
+        const unit = entitiesRef.current.find(e => e.id === selectedUnitId);
+        if (!unit || unit.health <= 0) return;
+
+        if (action === 'left') {
+          const turnStep = unit.domain === 'air' ? 12 : (unit.domain === 'ground' ? 15 : 6);
+          unit.heading = (unit.heading - turnStep + 360) % 360;
+        } else if (action === 'right') {
+          const turnStep = unit.domain === 'air' ? 12 : (unit.domain === 'ground' ? 15 : 6);
+          unit.heading = (unit.heading + turnStep) % 360;
+        } else if (action === 'fwd') {
+          const maxSpd = unit.domain === 'air' ? 950 : (unit.domain === 'ground' ? 60 : 40);
+          unit.speed = Math.min(unit.speed + (unit.domain === 'air' ? 60 : 5), maxSpd);
+        } else if (action === 'back') {
+          const minSpd = unit.domain === 'air' ? 150 : 0;
+          unit.speed = Math.max(unit.speed - (unit.domain === 'air' ? 60 : 5), minSpd);
+        }
+      }, [selectedUnitId]);
+
+      // Keyboard Controls Handler
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+          if (e.code === 'KeyW' || e.code === 'ArrowUp') steerManual('fwd');
+          else if (e.code === 'KeyS' || e.code === 'ArrowDown') steerManual('back');
+          else if (e.code === 'KeyA' || e.code === 'ArrowLeft') steerManual('left');
+          else if (e.code === 'KeyD' || e.code === 'ArrowRight') steerManual('right');
+          else if (e.code === 'Space') {
+            e.preventDefault();
+            fireWeapon('primary');
+          } else if (e.code === 'KeyF' || e.code === 'KeyR') {
+            fireWeapon('secondary');
+          } else if (e.code === 'KeyM') {
+            setManualOverride(prev => !prev);
+          } else if (e.code.startsWith('Digit')) {
+            const digit = parseInt(e.code.replace('Digit', '')) - 1;
+            const blueUnits = entitiesRef.current.filter(u => u.team === 'blue');
+            if (blueUnits[digit]) setSelectedUnitId(blueUnits[digit].id);
+          }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, [steerManual, fireWeapon]);
+
+      // =======================================================================
+      // HIGH-SPEED 60 FPS PHYSICS & CANVAS RENDER LOOP
+      // =======================================================================
+      useEffect(() => {
+        let animationFrameId;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        const renderLoop = () => {
+          const width = canvas.width = canvas.parentElement.clientWidth;
+          const height = canvas.height = canvas.parentElement.clientHeight;
+
+          const kmToCanvas = (xKm, yKm) => ({
+            x: (xKm / MAP_KM) * width,
+            y: (yKm / MAP_KM) * height
+          });
+
+          // -------------------------------------------------------------
+          // 1. PHYSICS UPDATE STEP
+          // -------------------------------------------------------------
+          if (isPlaying) {
+            setStepCount(prev => prev + 1);
+            setSimTime(prev => +(prev + 0.1).toFixed(1));
+
+            // Update Projectiles
+            const projs = projectilesRef.current;
+            for (let i = projs.length - 1; i >= 0; i--) {
+              const p = projs[i];
+              const rad = (p.heading * Math.PI) / 180;
+              p.x += Math.sin(rad) * p.speed * 0.04;
+              p.y -= Math.cos(rad) * p.speed * 0.04;
+              p.life--;
+
+              if (p.type === 'missile' && p.trail) {
+                p.trail.push({ x: p.x, y: p.y });
+                if (p.trail.length > 12) p.trail.shift();
+              }
+
+              // Check Target Hits
+              entitiesRef.current.forEach(target => {
+                if (target.team !== p.team && target.health > 0) {
+                  const d = Math.hypot(target.x - p.x, target.y - p.y);
+                  const threshold = target.domain === 'sea' ? 4.5 : (target.domain === 'ground' ? 3.5 : 2.5);
+
+                  if (d < threshold) {
+                    target.health = Math.max(0, target.health - p.damage);
+                    p.life = 0;
+
+                    explosionsRef.current.push({
+                      x: target.x, y: target.y,
+                      radius: p.type === 'missile' ? 24 : 12,
+                      maxRadius: p.type === 'missile' ? 42 : 20,
+                      color: p.type === 'missile' ? '#f97316' : '#fef08a',
+                      life: 25
+                    });
+
+                    damageTextsRef.current.push({
+                      x: target.x, y: target.y - 2,
+                      text: `-${p.damage} HP`,
+                      color: '#f43f5e',
+                      life: 35
+                    });
+
+                    if (target.health <= 0) {
+                      showToast(`💥 DESTROYED: ${target.id}`);
+                      explosionsRef.current.push({
+                        x: target.x, y: target.y,
+                        radius: 12, maxRadius: 65,
+                        color: '#ef4444', life: 45
+                      });
+                    }
+                  }
+                }
               });
 
-              damageTexts.push({
-                x: target.x, y: target.y - 2,
-                text: `-${p.damage} HP`,
-                color: '#f43f5e',
-                life: 35
-              });
-
-              if (target.health <= 0) {
-                showToast(`💥 TARGET DESTROYED: ${target.id}`);
-                explosions.push({
-                  x: target.x, y: target.y,
-                  radius: 10, maxRadius: 60,
-                  color: '#ef4444', life: 45
-                });
+              if (p.life <= 0 || p.x < 0 || p.x > MAP_KM || p.y < 0 || p.y > MAP_KM) {
+                projs.splice(i, 1);
               }
             }
-          }
-        });
 
-        if (p.life <= 0 || p.x < 0 || p.x > MAP_KM || p.y < 0 || p.y > MAP_KM) {
-          projectiles.splice(i, 1);
-        }
-      }
+            // Update Units
+            entitiesRef.current.forEach(e => {
+              if (e.health <= 0) return;
+              const isManual = (e.id === selectedUnitId && manualOverride);
 
-      // 2. Update Units
-      entities.forEach(e => {
-        if (e.health <= 0) return;
+              if (!isManual) {
+                // Autonomous combat maneuvers
+                let closestEnemy = null;
+                let minDist = 999;
+                entitiesRef.current.forEach(other => {
+                  if (other.team !== e.team && other.health > 0) {
+                    const dist = Math.hypot(other.x - e.x, other.y - e.y);
+                    if (dist < minDist) {
+                      minDist = dist;
+                      closestEnemy = other;
+                    }
+                  }
+                });
 
-        const isManual = (e.id === selectedUnitId && manualOverride);
+                if (closestEnemy) {
+                  const targetAngle = (Math.atan2(closestEnemy.x - e.x, -(closestEnemy.y - e.y)) * 180) / Math.PI;
+                  let diff = targetAngle - e.heading;
+                  while (diff < -180) diff += 360;
+                  while (diff > 180) diff -= 360;
 
-        if (!isManual) {
-          let closestEnemy = null;
-          let minDist = 999;
-          entities.forEach(other => {
-            if (other.team !== e.team && other.health > 0) {
-              const d = Math.hypot(other.x - e.x, other.y - e.y);
-              if (d < minDist) {
-                minDist = d;
-                closestEnemy = other;
+                  const turnRate = e.domain === 'air' ? 4.0 : (e.domain === 'ground' ? 7.0 : 2.5);
+                  e.heading += Math.sign(diff) * Math.min(Math.abs(diff), turnRate);
+
+                  // Auto Fire
+                  const fireRange = e.domain === 'air' ? 30 : (e.domain === 'ground' ? 40 : 45);
+                  if (Math.abs(diff) < 18 && minDist < fireRange) {
+                    if (minDist < 15 && Math.random() < 0.05) fireWeapon('primary');
+                    else if (Math.random() < 0.02) fireWeapon('secondary');
+                  }
+                }
               }
+
+              // Kinematics
+              const rad = (e.heading * Math.PI) / 180;
+              const speedScale = e.domain === 'air' ? 0.032 : (e.domain === 'ground' ? 0.012 : 0.009);
+              e.x += Math.sin(rad) * (e.speed / 100) * speedScale * simSpeed;
+              e.y -= Math.cos(rad) * (e.speed / 100) * speedScale * simSpeed;
+
+              // Bounds
+              if (e.x < 4) { e.x = 4; e.heading = 90; }
+              if (e.x > MAP_KM - 4) { e.x = MAP_KM - 4; e.heading = 270; }
+              if (e.y < 4) { e.y = 4; e.heading = 180; }
+              if (e.y > MAP_KM - 4) { e.y = MAP_KM - 4; e.heading = 0; }
+
+              // Trails
+              if (Math.random() < 0.3) {
+                e.trail.push({ x: e.x, y: e.y });
+                if (e.trail.length > 25) e.trail.shift();
+              }
+            });
+
+            // Explosions & Damage text life
+            for (let i = explosionsRef.current.length - 1; i >= 0; i--) {
+              const exp = explosionsRef.current[i];
+              exp.radius += (exp.maxRadius - exp.radius) * 0.15;
+              exp.life--;
+              if (exp.life <= 0) explosionsRef.current.splice(i, 1);
+            }
+            for (let i = damageTextsRef.current.length - 1; i >= 0; i--) {
+              const dt = damageTextsRef.current[i];
+              dt.y -= 0.1;
+              dt.life--;
+              if (dt.life <= 0) damageTextsRef.current.splice(i, 1);
+            }
+          }
+
+          // -------------------------------------------------------------
+          // 2. CANVAS RENDERING (THEME AWARE: LIGHT VS DARK)
+          // -------------------------------------------------------------
+          const isLight = (theme === 'light');
+
+          // Draw Topography
+          if (toggles.terrain) {
+            if (mapTerrain === 'desert') {
+              // Desert: Light vs Dark
+              ctx.fillStyle = isLight ? '#f2e1c9' : '#2b1a0e';
+              ctx.fillRect(0, 0, width, height);
+
+              // Dunes
+              ctx.fillStyle = isLight ? '#e6cfb0' : '#45260f';
+              ctx.beginPath();
+              ctx.moveTo(0, height * 0.28);
+              ctx.bezierCurveTo(width * 0.35, height * 0.15, width * 0.65, height * 0.45, width, height * 0.32);
+              ctx.lineTo(width, height * 0.68);
+              ctx.bezierCurveTo(width * 0.65, height * 0.78, width * 0.25, height * 0.55, 0, height * 0.62);
+              ctx.fill();
+
+              ctx.strokeStyle = isLight ? '#d97706' : '#b45309';
+              ctx.lineWidth = 3;
+              ctx.stroke();
+
+              // Mesa Rock Escarpment
+              const mesa = kmToCanvas(50, 24);
+              ctx.fillStyle = isLight ? '#d4b38a' : '#3b1803';
+              ctx.beginPath();
+              ctx.roundRect(mesa.x - 70, mesa.y - 40, 140, 80, 16);
+              ctx.fill();
+              ctx.strokeStyle = isLight ? '#b45309' : '#9a3412';
+              ctx.lineWidth = 2;
+              ctx.stroke();
+              ctx.fillStyle = isLight ? '#78350f' : '#fde68a';
+              ctx.font = 'bold 10px monospace';
+              ctx.fillText('⛰️ MESA ROCK ESCARPMENT (ALT: 1,800m)', mesa.x - 85, mesa.y - 45);
+
+              // Blue FOB Alfa Airbase
+              const fba = kmToCanvas(15, 50);
+              ctx.fillStyle = isLight ? '#e2e8f0' : '#1e293b';
+              ctx.fillRect(fba.x - 45, fba.y - 18, 90, 36);
+              ctx.strokeStyle = '#0284c7';
+              ctx.lineWidth = 2;
+              ctx.strokeRect(fba.x - 45, fba.y - 18, 90, 36);
+              ctx.fillStyle = '#0284c7';
+              ctx.font = 'bold 9px monospace';
+              ctx.fillText('BLUE AIRBASE [FOB ALFA]', fba.x - 50, fba.y - 24);
+
+              // Red Fortress Bastion
+              const rfb = kmToCanvas(85, 50);
+              ctx.fillStyle = isLight ? '#fee2e2' : '#2a0808';
+              ctx.fillRect(rfb.x - 40, rfb.y - 20, 80, 40);
+              ctx.strokeStyle = '#e11d48';
+              ctx.lineWidth = 2;
+              ctx.strokeRect(rfb.x - 40, rfb.y - 20, 80, 40);
+              ctx.fillStyle = '#e11d48';
+              ctx.font = 'bold 9px monospace';
+              ctx.fillText('RED BASTION FORTRESS', rfb.x - 50, rfb.y - 26);
+
+            } else if (mapTerrain === 'mountain') {
+              // Mountain: Light vs Dark
+              ctx.fillStyle = isLight ? '#e2e8f0' : '#0a101d';
+              ctx.fillRect(0, 0, width, height);
+
+              // 3 Mountain Peaks
+              const peaks = [
+                { xKm: 50, yKm: 22, r: 85, label: 'MT. TRISUL (6,800m)' },
+                { xKm: 48, yKm: 50, r: 105, label: 'NANDA DEVI SPINE (7,400m)' },
+                { xKm: 52, yKm: 78, r: 90, label: 'KANCHENJUNGA RIDGE (7,100m)' }
+              ];
+              peaks.forEach(p => {
+                const pt = kmToCanvas(p.xKm, p.yKm);
+                ctx.fillStyle = isLight ? '#cbd5e1' : '#1e293b';
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, p.r, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = isLight ? '#94a3b8' : '#334155';
+                ctx.beginPath();
+                ctx.arc(pt.x - 6, pt.y - 6, p.r * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(pt.x - 12, pt.y - 12, p.r * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Masking zone
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, p.r * 1.25, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = isLight ? '#334155' : '#cbd5e1';
+                ctx.font = 'bold 9px monospace';
+                ctx.fillText(`⛰️ ${p.label}`, pt.x - 55, pt.y - p.r - 8);
+              });
+
+              // River Gorge
+              ctx.strokeStyle = '#0284c7';
+              ctx.lineWidth = 3.5;
+              ctx.beginPath();
+              ctx.moveTo(width * 0.3, 0);
+              ctx.bezierCurveTo(width * 0.45, height * 0.35, width * 0.42, height * 0.65, width * 0.6, height);
+              ctx.stroke();
+
+            } else if (mapTerrain === 'ocean') {
+              // Ocean: Light vs Dark
+              ctx.fillStyle = isLight ? '#e0f2fe' : '#020d24';
+              ctx.fillRect(0, 0, width, height);
+
+              // Depth Rings
+              ctx.strokeStyle = isLight ? 'rgba(2, 132, 199, 0.25)' : 'rgba(14, 116, 144, 0.35)';
+              ctx.lineWidth = 1.5;
+              [100, 220, 360, 520].forEach(r => {
+                ctx.beginPath();
+                ctx.arc(width * 0.5, height * 0.5, r, 0, Math.PI * 2);
+                ctx.stroke();
+              });
+
+              // Aircraft Carrier Deck
+              const carPt = kmToCanvas(16, 50);
+              ctx.fillStyle = isLight ? '#475569' : '#1e293b';
+              ctx.beginPath();
+              ctx.roundRect(carPt.x - 22, carPt.y - 75, 44, 150, 8);
+              ctx.fill();
+              ctx.strokeStyle = '#0284c7';
+              ctx.lineWidth = 2;
+              ctx.stroke();
+
+              ctx.strokeStyle = '#eab308';
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.moveTo(carPt.x, carPt.y - 70);
+              ctx.lineTo(carPt.x - 8, carPt.y + 65);
+              ctx.stroke();
+
+              ctx.fillStyle = isLight ? '#0369a1' : '#38bdf8';
+              ctx.font = 'bold 10px monospace';
+              ctx.fillText('🚢 CARRIER BATTLE GROUP [INS VIKRANT]', carPt.x - 70, carPt.y - 85);
+
+            } else {
+              // Coastal Archipelago
+              ctx.fillStyle = isLight ? '#e0f2fe' : '#03142e';
+              ctx.fillRect(0, 0, width, height);
+
+              const islands = [
+                { xKm: 35, yKm: 35, rx: 75, ry: 50, rot: 0.3, name: 'NORTH ANDAMAN ATOLL' },
+                { xKm: 65, yKm: 65, rx: 85, ry: 60, rot: -0.4, name: 'GREAT NICOBAR FORT' },
+                { xKm: 50, yKm: 85, rx: 65, ry: 35, rot: 0.1, name: 'SOUTHERN REEF' }
+              ];
+              islands.forEach(isl => {
+                const pt = kmToCanvas(isl.xKm, isl.yKm);
+                ctx.fillStyle = isLight ? 'rgba(14, 165, 233, 0.3)' : 'rgba(6, 182, 212, 0.25)';
+                ctx.beginPath();
+                ctx.ellipse(pt.x, pt.y, isl.rx * 1.3, isl.ry * 1.3, isl.rot, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = isLight ? '#fde047' : '#ca8a04';
+                ctx.beginPath();
+                ctx.ellipse(pt.x, pt.y, isl.rx * 1.08, isl.ry * 1.08, isl.rot, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#16a34a';
+                ctx.beginPath();
+                ctx.ellipse(pt.x, pt.y, isl.rx, isl.ry, isl.rot, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = isLight ? '#065f46' : '#fef08a';
+                ctx.font = 'bold 9px monospace';
+                ctx.fillText(`🏝️ ${isl.name}`, pt.x - 45, pt.y - isl.ry - 8);
+              });
+            }
+          } else {
+            ctx.fillStyle = isLight ? '#f8fafc' : '#060d1b';
+            ctx.fillRect(0, 0, width, height);
+          }
+
+          // Tactical Grid
+          if (toggles.grid) {
+            ctx.strokeStyle = isLight ? 'rgba(203, 213, 225, 0.7)' : 'rgba(51, 65, 85, 0.4)';
+            ctx.lineWidth = 1;
+            for (let km = 10; km < MAP_KM; km += 10) {
+              const pt = kmToCanvas(km, km);
+              ctx.beginPath();
+              ctx.moveTo(pt.x, 0); ctx.lineTo(pt.x, height);
+              ctx.moveTo(0, pt.y); ctx.lineTo(width, pt.y);
+              ctx.stroke();
+
+              ctx.fillStyle = isLight ? '#64748b' : 'rgba(148, 163, 184, 0.6)';
+              ctx.font = '9px monospace';
+              ctx.fillText(`${km}k`, pt.x + 3, 12);
+            }
+          }
+
+          // Trajectory Trails
+          if (toggles.trails) {
+            entitiesRef.current.forEach(e => {
+              if (e.trail.length > 1) {
+                ctx.beginPath();
+                ctx.strokeStyle = e.team === 'blue' ? (isLight ? 'rgba(2, 132, 199, 0.6)' : 'rgba(56, 189, 248, 0.45)') : (isLight ? 'rgba(225, 29, 72, 0.6)' : 'rgba(244, 63, 94, 0.45)');
+                ctx.lineWidth = e.domain === 'air' ? 1.5 : (e.domain === 'ground' ? 2.5 : 3.0);
+                e.trail.forEach((pt, idx) => {
+                  const cp = kmToCanvas(pt.x, pt.y);
+                  if (idx === 0) ctx.moveTo(cp.x, cp.y);
+                  else ctx.lineTo(cp.x, cp.y);
+                });
+                ctx.stroke();
+              }
+            });
+          }
+
+          // Entities & Cones
+          entitiesRef.current.forEach(e => {
+            if (e.health <= 0) return;
+            const cPt = kmToCanvas(e.x, e.y);
+            const rad = (e.heading * Math.PI) / 180;
+            const isSel = (e.id === selectedUnitId);
+
+            // Radar Bubble
+            if (toggles.radar) {
+              const radarKm = e.domain === 'air' ? 32 : (e.domain === 'sea' ? 38 : 24);
+              const rRad = radarKm * (width / MAP_KM);
+              ctx.beginPath();
+              ctx.arc(cPt.x, cPt.y, rRad, 0, Math.PI * 2);
+
+              if (isSel) {
+                ctx.fillStyle = e.team === 'blue' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(244, 63, 94, 0.15)';
+                ctx.fill();
+                ctx.strokeStyle = e.team === 'blue' ? '#0284c7' : '#e11d48';
+                ctx.lineWidth = 2;
+              } else {
+                ctx.strokeStyle = e.team === 'blue' ? 'rgba(2, 132, 199, 0.25)' : 'rgba(225, 29, 72, 0.25)';
+                ctx.lineWidth = 1;
+              }
+              ctx.stroke();
+            }
+
+            // WEZ Cone
+            if (toggles.wez) {
+              const wezKm = e.domain === 'air' ? 18 : (e.domain === 'sea' ? 24 : 14);
+              const wezRad = wezKm * (width / MAP_KM);
+              const coneAngle = (e.domain === 'ground' ? 28 : 20) * (Math.PI / 180);
+              ctx.beginPath();
+              ctx.moveTo(cPt.x, cPt.y);
+              ctx.arc(cPt.x, cPt.y, wezRad, (e.heading - 90) * (Math.PI / 180) - coneAngle, (e.heading - 90) * (Math.PI / 180) + coneAngle);
+              ctx.closePath();
+
+              if (isSel) {
+                ctx.fillStyle = 'rgba(245, 158, 11, 0.3)';
+                ctx.fill();
+                ctx.strokeStyle = '#d97706';
+                ctx.lineWidth = 2;
+              } else {
+                ctx.fillStyle = 'rgba(245, 158, 11, 0.08)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(217, 119, 6, 0.35)';
+                ctx.lineWidth = 1;
+              }
+              ctx.stroke();
+            }
+
+            // Selected Reticle & Aiming Laser
+            if (isSel) {
+              ctx.save();
+              ctx.translate(cPt.x, cPt.y);
+              ctx.beginPath();
+              ctx.arc(0, 0, 22, 0, Math.PI * 2);
+              ctx.strokeStyle = manualOverride ? '#f59e0b' : '#0284c7';
+              ctx.lineWidth = 2.5;
+              ctx.setLineDash([5, 5]);
+              ctx.stroke();
+              ctx.setLineDash([]);
+
+              ctx.beginPath();
+              ctx.moveTo(0, 0);
+              ctx.lineTo(Math.sin(rad) * 65, -Math.cos(rad) * 65);
+              ctx.strokeStyle = manualOverride ? 'rgba(245, 158, 11, 0.9)' : 'rgba(2, 132, 199, 0.7)';
+              ctx.lineWidth = 2;
+              ctx.stroke();
+              ctx.restore();
+            }
+
+            // Draw Unit Sprite
+            ctx.save();
+            ctx.translate(cPt.x, cPt.y);
+            ctx.rotate(rad);
+            ctx.fillStyle = e.team === 'blue' ? '#0284c7' : '#e11d48';
+
+            if (e.domain === 'air') {
+              ctx.beginPath();
+              ctx.moveTo(0, -14);
+              ctx.lineTo(10, 8);
+              ctx.lineTo(0, 4);
+              ctx.lineTo(-10, 8);
+              ctx.closePath();
+              ctx.fill();
+
+              ctx.fillStyle = '#f97316';
+              ctx.beginPath();
+              ctx.moveTo(-3, 8);
+              ctx.lineTo(0, 15 + Math.random() * 4);
+              ctx.lineTo(3, 8);
+              ctx.closePath();
+              ctx.fill();
+
+            } else if (e.domain === 'ground') {
+              ctx.fillRect(-9, -9, 18, 18);
+              ctx.fillStyle = isLight ? '#0f172a' : '#ffffff';
+              ctx.fillRect(-2.5, -15, 5, 10);
+              ctx.fillStyle = e.team === 'blue' ? '#0369a1' : '#be123c';
+              ctx.beginPath();
+              ctx.arc(0, 0, 5, 0, Math.PI * 2);
+              ctx.fill();
+
+            } else {
+              ctx.beginPath();
+              ctx.moveTo(0, -16);
+              ctx.lineTo(8, -2);
+              ctx.lineTo(6, 14);
+              ctx.lineTo(-6, 14);
+              ctx.lineTo(-8, -2);
+              ctx.closePath();
+              ctx.fill();
+              ctx.fillStyle = isLight ? '#0f172a' : '#ffffff';
+              ctx.fillRect(-2, -5, 4, 10);
+            }
+            ctx.restore();
+
+            // Label & Health Bar
+            ctx.fillStyle = isLight ? '#0f172a' : '#e2e8f0';
+            ctx.font = 'bold 10px monospace';
+            ctx.fillText(e.id, cPt.x - 24, cPt.y - 18);
+
+            const hbW = 34;
+            ctx.fillStyle = isLight ? '#cbd5e1' : '#0f172a';
+            ctx.fillRect(cPt.x - hbW / 2, cPt.y - 14, hbW, 3.5);
+            ctx.fillStyle = e.health > 50 ? '#10b981' : (e.health > 25 ? '#f59e0b' : '#ef4444');
+            ctx.fillRect(cPt.x - hbW / 2, cPt.y - 14, (hbW * e.health) / e.maxHealth, 3.5);
+          });
+
+          // Draw Projectiles
+          projectilesRef.current.forEach(p => {
+            const cPt = kmToCanvas(p.x, p.y);
+            if (p.type === 'missile') {
+              if (p.trail && p.trail.length > 1) {
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)';
+                ctx.lineWidth = 1.5;
+                p.trail.forEach((pt, idx) => {
+                  const cp = kmToCanvas(pt.x, pt.y);
+                  if (idx === 0) ctx.moveTo(cp.x, cp.y);
+                  else ctx.lineTo(cp.x, cp.y);
+                });
+                ctx.stroke();
+              }
+              ctx.beginPath();
+              ctx.arc(cPt.x, cPt.y, 3.5, 0, Math.PI * 2);
+              ctx.fillStyle = '#f59e0b';
+              ctx.fill();
+            } else {
+              ctx.beginPath();
+              ctx.arc(cPt.x, cPt.y, 2, 0, Math.PI * 2);
+              ctx.fillStyle = isLight ? '#0f172a' : '#ffffff';
+              ctx.fill();
             }
           });
 
-          if (closestEnemy) {
-            const targetAngle = (Math.atan2(closestEnemy.x - e.x, -(closestEnemy.y - e.y)) * 180) / Math.PI;
-            let diff = targetAngle - e.heading;
-            while (diff < -180) diff += 360;
-            while (diff > 180) diff -= 360;
-
-            const turnRate = e.domain === 'air' ? 4.0 : (e.domain === 'ground' ? 7.0 : 2.5);
-            e.heading += Math.sign(diff) * Math.min(Math.abs(diff), turnRate);
-
-            // Autonomous Tactical Firing
-            const fireRange = e.domain === 'air' ? 30 : (e.domain === 'ground' ? 40 : 45);
-            if (Math.abs(diff) < 18 && minDist < fireRange) {
-              if (minDist < 15 && Math.random() < 0.05) {
-                triggerWeaponFire(e, 'primary');
-              } else if (Math.random() < 0.02) {
-                triggerWeaponFire(e, 'secondary');
-              }
-            }
-          }
-        }
-
-        const rad = (e.heading * Math.PI) / 180;
-        const speedScale = e.domain === 'air' ? 0.032 : (e.domain === 'ground' ? 0.012 : 0.009);
-        e.x += Math.sin(rad) * (e.speed / 100) * speedScale * simSpeed;
-        e.y -= Math.cos(rad) * (e.speed / 100) * speedScale * simSpeed;
-
-        if (e.x < 4) { e.x = 4; e.heading = 90; }
-        if (e.x > MAP_KM - 4) { e.x = MAP_KM - 4; e.heading = 270; }
-        if (e.y < 4) { e.y = 4; e.heading = 180; }
-        if (e.y > MAP_KM - 4) { e.y = MAP_KM - 4; e.heading = 0; }
-
-        if (stepCount % 4 === 0) {
-          e.trail.push({ x: e.x, y: e.y });
-          if (e.trail.length > 28) e.trail.shift();
-        }
-      });
-
-      // Update Explosions
-      for (let i = explosions.length - 1; i >= 0; i--) {
-        const exp = explosions[i];
-        exp.radius += (exp.maxRadius - exp.radius) * 0.15;
-        exp.life--;
-        if (exp.life <= 0) explosions.splice(i, 1);
-      }
-
-      // Update Damage Texts
-      for (let i = damageTexts.length - 1; i >= 0; i--) {
-        const dt = damageTexts[i];
-        dt.y -= 0.1;
-        dt.life--;
-        if (dt.life <= 0) damageTexts.splice(i, 1);
-      }
-
-      updateTelemetryUI();
-      updateHUD();
-    }
-
-    // =====================================================================
-    // CANVAS RENDERING PIPELINE (RICH VIBRANT TOPOGRAPHY)
-    // =====================================================================
-    function draw() {
-      // 1. Draw High-Contrast Beautiful Terrain Features
-      if (toggles.terrain) {
-        drawTerrainFeatures();
-      } else {
-        ctx.fillStyle = '#060d1b';
-        ctx.fillRect(0, 0, width, height);
-      }
-
-      // 2. Coordinate Grid
-      if (toggles.grid) {
-        ctx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
-        ctx.lineWidth = 1;
-        for (let km = 10; km < MAP_KM; km += 10) {
-          const pt = kmToCanvas(km, km);
-          ctx.beginPath();
-          ctx.moveTo(pt.x, 0); ctx.lineTo(pt.x, height);
-          ctx.moveTo(0, pt.y); ctx.lineTo(width, pt.y);
-          ctx.stroke();
-
-          ctx.fillStyle = 'rgba(148, 163, 184, 0.6)';
-          ctx.font = '9px monospace';
-          ctx.fillText(`${km}k`, pt.x + 3, 12);
-        }
-      }
-
-      // 3. Trajectory Flight & Driving Trails
-      if (toggles.trails) {
-        entities.forEach(e => {
-          if (e.trail.length > 1) {
+          // Draw Explosions
+          explosionsRef.current.forEach(exp => {
+            const cPt = kmToCanvas(exp.x, exp.y);
+            ctx.save();
             ctx.beginPath();
-            ctx.strokeStyle = e.team === 'blue' ? 'rgba(56, 189, 248, 0.45)' : 'rgba(244, 63, 94, 0.45)';
-            ctx.lineWidth = e.domain === 'air' ? 1.5 : (e.domain === 'ground' ? 2.5 : 3.0);
-            e.trail.forEach((pt, idx) => {
-              const cPt = kmToCanvas(pt.x, pt.y);
-              if (idx === 0) ctx.moveTo(cPt.x, cPt.y);
-              else ctx.lineTo(cPt.x, cPt.y);
-            });
-            ctx.stroke();
-          }
-        });
-      }
-
-      // 4. Entities, Cones & Reticles
-      entities.forEach(e => {
-        if (e.health <= 0) return;
-        const cPt = kmToCanvas(e.x, e.y);
-        const rad = (e.heading * Math.PI) / 180;
-        const isSelected = (e.id === selectedUnitId);
-
-        // Radar Bubble: Outline for all; glowing fill ONLY for selected unit
-        if (toggles.radar) {
-          const radarKm = e.domain === 'air' ? 32 : (e.domain === 'sea' ? 38 : 24);
-          const rRad = radarKm * (width / MAP_KM);
-          ctx.beginPath();
-          ctx.arc(cPt.x, cPt.y, rRad, 0, Math.PI * 2);
-
-          if (isSelected) {
-            ctx.fillStyle = e.team === 'blue' ? 'rgba(56, 189, 248, 0.12)' : 'rgba(244, 63, 94, 0.12)';
+            ctx.arc(cPt.x, cPt.y, exp.radius, 0, Math.PI * 2);
+            ctx.fillStyle = `${exp.color}44`;
             ctx.fill();
-            ctx.strokeStyle = e.team === 'blue' ? '#38bdf8' : '#f43f5e';
+            ctx.strokeStyle = exp.color;
             ctx.lineWidth = 2;
-          } else {
-            ctx.strokeStyle = e.team === 'blue' ? 'rgba(56, 189, 248, 0.18)' : 'rgba(244, 63, 94, 0.18)';
-            ctx.lineWidth = 1;
-          }
-          ctx.stroke();
-        }
-
-        // Weapon Engagement Zone (WEZ) Cone
-        if (toggles.wez) {
-          const wezKm = e.domain === 'air' ? 18 : (e.domain === 'sea' ? 24 : 14);
-          const wezRad = wezKm * (width / MAP_KM);
-          const coneAngle = (e.domain === 'ground' ? 28 : 20) * (Math.PI / 180);
-          ctx.beginPath();
-          ctx.moveTo(cPt.x, cPt.y);
-          ctx.arc(cPt.x, cPt.y, wezRad, (e.heading - 90) * (Math.PI / 180) - coneAngle, (e.heading - 90) * (Math.PI / 180) + coneAngle);
-          ctx.closePath();
-
-          if (isSelected) {
-            ctx.fillStyle = 'rgba(251, 191, 36, 0.25)';
-            ctx.fill();
-            ctx.strokeStyle = '#fbbf24';
-            ctx.lineWidth = 2;
-          } else {
-            ctx.fillStyle = 'rgba(251, 191, 36, 0.05)';
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(251, 191, 36, 0.25)';
-            ctx.lineWidth = 1;
-          }
-          ctx.stroke();
-        }
-
-        // Selected Unit Reticle & Aiming Line
-        if (isSelected) {
-          ctx.save();
-          ctx.translate(cPt.x, cPt.y);
-          ctx.beginPath();
-          ctx.arc(0, 0, 22, 0, Math.PI * 2);
-          ctx.strokeStyle = manualOverride ? '#f59e0b' : '#38bdf8';
-          ctx.lineWidth = 2.5;
-          ctx.setLineDash([5, 5]);
-          ctx.stroke();
-          ctx.setLineDash([]);
-
-          ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.lineTo(Math.sin(rad) * 65, -Math.cos(rad) * 65);
-          ctx.strokeStyle = manualOverride ? 'rgba(245, 158, 11, 0.9)' : 'rgba(56, 189, 248, 0.7)';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          ctx.restore();
-        }
-
-        // Draw Entity Sprite by Domain
-        ctx.save();
-        ctx.translate(cPt.x, cPt.y);
-        ctx.rotate(rad);
-
-        const color = e.team === 'blue' ? '#38bdf8' : '#f43f5e';
-        ctx.fillStyle = color;
-
-        if (e.domain === 'air') {
-          // Fighter Jet Silhouette + Engine Flame
-          ctx.beginPath();
-          ctx.moveTo(0, -14);
-          ctx.lineTo(10, 8);
-          ctx.lineTo(0, 4);
-          ctx.lineTo(-10, 8);
-          ctx.closePath();
-          ctx.fill();
-
-          ctx.fillStyle = '#f97316';
-          ctx.beginPath();
-          ctx.moveTo(-3, 8);
-          ctx.lineTo(0, 15 + Math.random() * 4);
-          ctx.lineTo(3, 8);
-          ctx.closePath();
-          ctx.fill();
-
-        } else if (e.domain === 'ground') {
-          // Armored Tank Hull + Gun Barrel
-          ctx.fillRect(-9, -9, 18, 18);
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(-2.5, -15, 5, 10);
-          ctx.fillStyle = e.team === 'blue' ? '#0284c7' : '#e11d48';
-          ctx.beginPath();
-          ctx.arc(0, 0, 5, 0, Math.PI * 2);
-          ctx.fill();
-
-        } else {
-          // Warship Hull + Mast
-          ctx.beginPath();
-          ctx.moveTo(0, -16);
-          ctx.lineTo(8, -2);
-          ctx.lineTo(6, 14);
-          ctx.lineTo(-6, 14);
-          ctx.lineTo(-8, -2);
-          ctx.closePath();
-          ctx.fill();
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(-2, -5, 4, 10);
-        }
-        ctx.restore();
-
-        // Label & Health Bar
-        ctx.fillStyle = '#e2e8f0';
-        ctx.font = 'bold 10px monospace';
-        ctx.fillText(e.id, cPt.x - 24, cPt.y - 18);
-
-        const hbW = 34;
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(cPt.x - hbW / 2, cPt.y - 14, hbW, 3.5);
-        ctx.fillStyle = e.health > 50 ? '#10b981' : (e.health > 25 ? '#f59e0b' : '#ef4444');
-        ctx.fillRect(cPt.x - hbW / 2, cPt.y - 14, (hbW * e.health) / e.maxHealth, 3.5);
-      });
-
-      // 5. Draw Projectiles
-      projectiles.forEach(p => {
-        const cPt = kmToCanvas(p.x, p.y);
-        if (p.type === 'missile') {
-          if (p.trail && p.trail.length > 1) {
-            ctx.beginPath();
-            ctx.strokeStyle = 'rgba(251, 191, 36, 0.6)';
-            ctx.lineWidth = 1.5;
-            p.trail.forEach((pt, idx) => {
-              const cp = kmToCanvas(pt.x, pt.y);
-              if (idx === 0) ctx.moveTo(cp.x, cp.y);
-              else ctx.lineTo(cp.x, cp.y);
-            });
             ctx.stroke();
-          }
-          ctx.beginPath();
-          ctx.arc(cPt.x, cPt.y, 3.5, 0, Math.PI * 2);
-          ctx.fillStyle = '#f59e0b';
-          ctx.fill();
-        } else {
-          ctx.beginPath();
-          ctx.arc(cPt.x, cPt.y, 2, 0, Math.PI * 2);
-          ctx.fillStyle = '#ffffff';
-          ctx.fill();
-        }
-      });
+            ctx.restore();
+          });
 
-      // 6. Draw Explosions
-      explosions.forEach(exp => {
-        const cPt = kmToCanvas(exp.x, exp.y);
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(cPt.x, cPt.y, exp.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `${exp.color}44`;
-        ctx.fill();
-        ctx.strokeStyle = exp.color;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.restore();
-      });
+          // Draw Damage Texts
+          damageTextsRef.current.forEach(dt => {
+            const cPt = kmToCanvas(dt.x, dt.y);
+            ctx.fillStyle = dt.color;
+            ctx.font = 'bold 12px monospace';
+            ctx.fillText(dt.text, cPt.x - 14, cPt.y);
+          });
 
-      // 7. Draw Damage Texts
-      damageTexts.forEach(dt => {
-        const cPt = kmToCanvas(dt.x, dt.y);
-        ctx.fillStyle = dt.color;
-        ctx.font = 'bold 12px monospace';
-        ctx.fillText(dt.text, cPt.x - 14, cPt.y);
-      });
+          animationFrameId = requestAnimationFrame(renderLoop);
+        };
+
+        animationFrameId = requestAnimationFrame(renderLoop);
+        return () => cancelAnimationFrame(animationFrameId);
+      }, [isPlaying, simSpeed, mapTerrain, theme, toggles, selectedUnitId, manualOverride, fireWeapon, showToast]);
+
+      // Calculate Team Tallies
+      const blueAlive = entitiesRef.current.filter(e => e.team === 'blue' && e.health > 0).length;
+      const blueTotal = entitiesRef.current.filter(e => e.team === 'blue').length;
+      const redAlive = entitiesRef.current.filter(e => e.team === 'red' && e.health > 0).length;
+      const redTotal = entitiesRef.current.filter(e => e.team === 'red').length;
+
+      // Theme Classes
+      const isLight = (theme === 'light');
+      const bgApp = isLight ? 'bg-slate-100 text-slate-800' : 'bg-slate-950 text-slate-100';
+      const bgHeader = isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800';
+      const bgCard = isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-950 border-slate-800';
+      const bgSidebar = isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900 border-slate-800';
+      const textMuted = isLight ? 'text-slate-500' : 'text-slate-400';
+
+      return (
+        <div className={`flex flex-col h-screen select-none ${bgApp}`}>
+
+          {/* =============================================================== */}
+          <!-- TOP COMMAND HEADER BAR -->
+          {/* =============================================================== */}
+          <header className={`h-14 border-b flex items-center justify-between px-3 md:px-4 z-20 shrink-0 ${bgHeader}`}>
+            <div className="flex items-center space-x-2 md:space-x-3">
+              <div className={`flex items-center space-x-2 px-2.5 py-1 rounded-lg border ${isLight ? 'bg-slate-100 border-slate-300' : 'bg-slate-800 border-slate-700'}`}>
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="font-black text-xs tracking-wider text-sky-600 dark:text-sky-400">DRDO TSS</span>
+              </div>
+              <div className="hidden lg:flex items-center space-x-2">
+                <span className="text-xs font-bold">TACTICAL RADAR</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/40 text-emerald-600 dark:text-emerald-300 font-mono font-bold tracking-wide">
+                  ● AI: 6,000 ITERS (100% WIN RATE)
+                </span>
+              </div>
+              <span className={`text-xs px-2 py-1 rounded font-mono ${isLight ? 'bg-slate-100 text-slate-700' : 'bg-slate-800 text-slate-300'}`}>
+                TIME: {simTime}s
+              </span>
+            </div>
+
+            {/* 1-Click Interactive Map Selector Tabs */}
+            <div className={`hidden md:flex items-center space-x-1 p-1 rounded-xl border ${isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'}`}>
+              <span className="text-[10px] font-black text-slate-400 uppercase px-1.5 tracking-wider">MAP:</span>
+              {[
+                { id: 'archipelago', label: '🏝️ Archipelago' },
+                { id: 'desert', label: '🏜️ Desert Sands' },
+                { id: 'mountain', label: '⛰️ Mountain Ridge' },
+                { id: 'ocean', label: '🌊 Deep Ocean' }
+              ].map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => { setMapTerrain(m.id); showToast(`🗺️ Map Switched to ${m.label}`); }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                    mapTerrain === m.id
+                      ? 'bg-sky-600 text-white shadow-sm glow-sky'
+                      : (isLight ? 'text-slate-600 hover:bg-slate-200' : 'text-slate-300 hover:bg-slate-800')
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Header Right Actions: Theme Toggle, Fleet Builder, Reset, Play/Pause */}
+            <div className="flex items-center space-x-2">
+              {/* THEME TOGGLE BUTTON (LIGHT / DARK) */}
+              <button
+                onClick={() => {
+                  const nextTheme = theme === 'dark' ? 'light' : 'dark';
+                  setTheme(nextTheme);
+                  showToast(nextTheme === 'light' ? '☀️ Switched to C4ISR Tactical Light Theme' : '🌙 Switched to Stealth Dark Radar Theme');
+                }}
+                className={`flex items-center space-x-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition ${
+                  isLight
+                    ? 'bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200'
+                    : 'bg-slate-800 border-slate-700 text-amber-300 hover:bg-slate-700'
+                }`}
+                title="Toggle between Tactical Light Mode (Projection) and Dark Radar Mode"
+              >
+                <span>{isLight ? '☀️' : '🌙'}</span>
+                <span className="hidden sm:inline">{isLight ? 'LIGHT THEME' : 'DARK THEME'}</span>
+              </button>
+
+              {/* Custom Fleet Builder Button */}
+              <button
+                onClick={() => setIsCustomizerOpen(true)}
+                className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-black text-xs px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition glow-amber shadow"
+              >
+                <span>🛠️</span>
+                <span className="hidden sm:inline">CUSTOM FLEET BUILDER</span>
+                <span className="sm:hidden">FLEET</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  initFleet(fleetConfig, mapTerrain);
+                  showToast('🔄 Battlespace Reset to Initial Formation');
+                }}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition ${isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700' : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'}`}
+              >
+                Reset
+              </button>
+
+              <button
+                onClick={() => setIsPlaying(prev => !prev)}
+                className="bg-sky-600 hover:bg-sky-500 text-xs font-bold text-white px-4 py-1.5 rounded-lg transition shadow"
+              >
+                {isPlaying ? 'Pause' : 'Play'}
+              </button>
+            </div>
+          </header>
+
+          {/* =============================================================== */}
+          <!-- MAIN VIEWPORT & SIDEBAR -->
+          {/* =============================================================== */}
+          <div className="flex flex-1 relative overflow-hidden">
+
+            {/* Radar Battlefield Canvas Container */}
+            <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+              <canvas
+                ref={canvasRef}
+                onClick={(e) => {
+                  const rect = canvasRef.current.getBoundingClientRect();
+                  const cx = e.clientX - rect.left;
+                  const cy = e.clientY - rect.top;
+                  const xKm = (cx / canvasRef.current.width) * MAP_KM;
+                  const yKm = (cy / canvasRef.current.height) * MAP_KM;
+
+                  let nearest = null;
+                  let minD = 999;
+                  entitiesRef.current.forEach(u => {
+                    const d = Math.hypot(u.x - xKm, u.y - yKm);
+                    if (d < minD && d < 8) {
+                      minD = d;
+                      nearest = u;
+                    }
+                  });
+                  if (nearest) setSelectedUnitId(nearest.id);
+                }}
+                className="w-full h-full cursor-crosshair"
+              />
+
+              {/* In-Canvas Mini HUD Pill */}
+              <div className={`absolute top-4 left-4 rounded-xl p-3 text-xs font-mono space-y-1.5 pointer-events-none z-10 shadow-xl border ${
+                isLight ? 'bg-white/90 backdrop-blur border-slate-200 text-slate-800' : 'bg-slate-900/90 backdrop-blur border-slate-800 text-slate-300'
+              }`}>
+                <div className="flex items-center justify-between font-bold border-b pb-1 border-slate-200 dark:border-slate-800">
+                  <span className="text-amber-600 dark:text-amber-400 font-black tracking-wide">
+                    MAP: {mapTerrain.toUpperCase()}
+                  </span>
+                  <span className="text-emerald-500 text-[10px] ml-3">● 50 Hz LIVE</span>
+                </div>
+                <div className="flex space-x-4 pt-0.5">
+                  <div>Blue Forces: <b className="text-sky-600 dark:text-sky-400 text-sm">{blueAlive}</b> / {blueTotal}</div>
+                  <div>Red Forces: <b className="text-rose-600 dark:text-rose-400 text-sm">{redAlive}</b> / {redTotal}</div>
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-0.5">
+                  AI Posture: <b className="text-emerald-600 dark:text-emerald-400">MUTUAL COVER + BVR</b>
+                </div>
+              </div>
+
+              {/* Floating Bottom Quick Unit Selector Strip */}
+              <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 rounded-xl px-3 py-2 flex items-center space-x-2 z-10 shadow-2xl border max-w-[90%] overflow-x-auto ${
+                isLight ? 'bg-white/95 border-slate-300' : 'bg-slate-900/95 border-slate-800'
+              }`}>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider mr-1 shrink-0">SWITCH UNIT:</span>
+                <div className="flex space-x-1.5 shrink-0">
+                  {entitiesRef.current.filter(u => u.team === 'blue').map(u => {
+                    const icon = u.domain === 'air' ? '✈️' : (u.domain === 'ground' ? '🛡️' : '🚢');
+                    const isSel = (u.id === selectedUnitId);
+                    return (
+                      <button
+                        key={u.id}
+                        onClick={() => setSelectedUnitId(u.id)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1 shrink-0 ${
+                          isSel
+                            ? 'bg-amber-500 text-slate-950 glow-amber font-black shadow'
+                            : (isLight ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-slate-800 text-slate-300 hover:bg-slate-700')
+                        }`}
+                      >
+                        <span>{icon}</span>
+                        <span>{u.id}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Toast Banner */}
+              <div className={`absolute top-4 right-4 pointer-events-none transition-all duration-300 rounded-xl px-4 py-2.5 text-xs font-mono z-10 shadow-2xl border-2 border-amber-500 ${
+                toast.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
+              } ${isLight ? 'bg-white text-slate-900' : 'bg-slate-900 text-amber-200'}`}>
+                {toast.text}
+              </div>
+            </div>
+
+            {/* ============================================================= */}
+            <!-- RIGHT-HAND CONTROL & TELEMETRY DECK -->
+            {/* ============================================================= */}
+            <aside className={`w-96 border-l flex flex-col p-3.5 space-y-3.5 overflow-y-auto z-10 shrink-0 ${bgSidebar}`}>
+
+              {/* 1. ACTIVE VEHICLE COCKPIT / TURRET / HELM OVERRIDE */}
+              <div className={`border-2 border-amber-500/70 rounded-xl p-3.5 glow-amber relative ${bgCard}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-xl">
+                      {activeUnit?.domain === 'air' ? '✈️' : (activeUnit?.domain === 'ground' ? '🛡️' : '🚢')}
+                    </span>
+                    <h3 className="text-xs font-black text-amber-500 uppercase tracking-wider">
+                      {activeUnit?.domain === 'air' ? 'PILOT COCKPIT OVERRIDE' : (activeUnit?.domain === 'ground' ? 'TANK TURRET COMMANDER' : 'WARSHIP HELM & FIRE CONTROL')}
+                    </h3>
+                  </div>
+
+                  <button
+                    onClick={() => setManualOverride(prev => !prev)}
+                    className={`text-[10px] font-black px-2.5 py-1 rounded transition ${
+                      manualOverride
+                        ? 'bg-amber-500 text-slate-950 glow-amber'
+                        : 'bg-emerald-500/20 text-emerald-600 border border-emerald-500'
+                    }`}
+                  >
+                    {manualOverride ? 'MANUAL (Active)' : 'AUTO (AI)'}
+                  </button>
+                </div>
+
+                <p className={`text-[11px] mb-2 font-medium ${textMuted}`}>
+                  Control steering, speed, and fire weapons:
+                </p>
+
+                {/* D-Pad Buttons */}
+                <div className="grid grid-cols-3 gap-1.5 text-center mb-2.5">
+                  <div></div>
+                  <button
+                    onClick={() => steerManual('fwd')}
+                    className={`text-xs py-2 rounded-lg font-bold border transition ${isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700' : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'}`}
+                  >
+                    ▲ ACCEL (W)
+                  </button>
+                  <div></div>
+                  <button
+                    onClick={() => steerManual('left')}
+                    className={`text-xs py-2 rounded-lg font-bold border transition ${isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700' : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'}`}
+                  >
+                    ◀ TURN (A)
+                  </button>
+                  <div className="flex items-center justify-center">
+                    <div className={`text-xs font-mono font-black text-amber-500 px-2 py-1 rounded border ${isLight ? 'bg-slate-100 border-slate-300' : 'bg-slate-900 border-slate-800'}`}>
+                      {Math.round(activeUnit?.heading || 0)}°
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => steerManual('right')}
+                    className={`text-xs py-2 rounded-lg font-bold border transition ${isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700' : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'}`}
+                  >
+                    TURN ▶ (D)
+                  </button>
+                  <div></div>
+                  <button
+                    onClick={() => steerManual('back')}
+                    className={`text-xs py-2 rounded-lg font-bold border transition ${isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700' : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'}`}
+                  >
+                    ▼ BRAKE (S)
+                  </button>
+                  <div></div>
+                </div>
+
+                {/* Weapons Fire Buttons */}
+                <div className="space-y-1.5">
+                  <button
+                    onClick={() => fireWeapon('primary')}
+                    className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:scale-95 text-slate-950 font-black text-xs py-2.5 rounded-lg shadow-lg transition flex items-center justify-center space-x-2"
+                  >
+                    <span>{activeUnit?.domain === 'ground' ? '💥' : (activeUnit?.domain === 'sea' ? '⚓' : '🔫')}</span>
+                    <span>
+                      {activeUnit?.domain === 'ground'
+                        ? 'FIRE 120MM TANK SHELL [SPACE]'
+                        : (activeUnit?.domain === 'sea' ? 'FIRE 76MM NAVAL GUN [SPACE]' : 'FIRE 20MM VULCAN CANNON [SPACE]')}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => fireWeapon('secondary')}
+                    className="w-full bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-black text-xs py-2.5 rounded-lg shadow-lg transition flex items-center justify-center space-x-2"
+                  >
+                    <span>🚀</span>
+                    <span>
+                      {activeUnit?.domain === 'ground'
+                        ? 'LAUNCH SAM AIR DEFENSE MISSILE [F]'
+                        : (activeUnit?.domain === 'sea' ? 'LAUNCH CRUISE MISSILE [F]' : 'LAUNCH FOX-3 RADAR MISSILE [F]')}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. SELECTED UNIT TELEMETRY INSPECTOR */}
+              <div className={`border rounded-xl p-3 ${bgCard}`}>
+                <h3 className="text-xs font-bold text-sky-500 uppercase tracking-wider mb-2 flex items-center justify-between">
+                  <span>Unit Telemetry Inspector</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                    activeUnit?.team === 'blue' ? 'bg-sky-500/20 text-sky-600 dark:text-sky-300' : 'bg-rose-500/20 text-rose-600 dark:text-rose-300'
+                  }`}>
+                    {activeUnit?.team?.toUpperCase()}
+                  </span>
+                </h3>
+                <div className={`text-xs font-mono space-y-1.5 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                  <div className="flex justify-between"><span className={textMuted}>Callsign:</span> <b className="font-bold">{activeUnit?.id}</b></div>
+                  <div className="flex justify-between"><span className={textMuted}>Platform:</span> <span className="text-sky-600 dark:text-sky-400 font-bold">{activeUnit?.class}</span></div>
+                  <div className="flex justify-between"><span className={textMuted}>Position:</span> <span>X: {activeUnit?.x?.toFixed(1)} km | Y: {activeUnit?.y?.toFixed(1)} km</span></div>
+                  <div className="flex justify-between"><span className={textMuted}>Speed / Alt:</span> <span>{Math.round(activeUnit?.speed || 0)} kts | Alt: {activeUnit?.alt?.toFixed(1)} km</span></div>
+                  <div className="flex justify-between"><span className={textMuted}>Bearing:</span> <span>{Math.round(activeUnit?.heading || 0)}°</span></div>
+                  
+                  <div className="mt-2 pt-1.5 border-t border-slate-200 dark:border-slate-800">
+                    <div className="flex justify-between text-[11px] mb-1">
+                      <span>Structural Integrity:</span>
+                      <b className="text-emerald-500">{Math.round(((activeUnit?.health || 0) / (activeUnit?.maxHealth || 100)) * 100)}%</b>
+                    </div>
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-emerald-500 h-full transition-all duration-200"
+                        style={{ width: `${Math.round(((activeUnit?.health || 0) / (activeUnit?.maxHealth || 100)) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-2 flex justify-between text-[11px] pt-1.5 border-t border-slate-200 dark:border-slate-800">
+                    <span>Primary Ammo: <b className="text-sky-500">{activeUnit?.ammo}</b></span>
+                    <span>Missiles: <b className="text-rose-500 font-bold">{activeUnit?.missiles}</b></span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. TACTICAL OVERLAYS CHECKBOXES */}
+              <div className={`border rounded-xl p-3 space-y-2 ${bgCard}`}>
+                <h3 className="text-xs font-bold uppercase tracking-wider mb-2">Tactical Overlays</h3>
+                {[
+                  { id: 'radar', label: 'Show Radar Detection Cones' },
+                  { id: 'wez', label: 'Show Weapon Engagement (WEZ)' },
+                  { id: 'trails', label: 'Show Trajectory Trails' },
+                  { id: 'grid', label: 'Show 10 km MGRS Grid' },
+                  { id: 'terrain', label: 'Show High-Contrast Map Terrain' }
+                ].map(t => (
+                  <label key={t.id} className="flex items-center space-x-2 text-xs cursor-pointer hover:opacity-80">
+                    <input
+                      type="checkbox"
+                      checked={toggles[t.id]}
+                      onChange={(e) => setToggles(prev => ({ ...prev, [t.id]: e.target.checked }))}
+                      className="rounded text-sky-600 focus:ring-0"
+                    />
+                    <span>{t.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* 4. SPEED PACING */}
+              <div className={`border rounded-xl p-3 ${bgCard}`}>
+                <h3 className="text-xs font-bold uppercase tracking-wider mb-2">Simulation Pacing</h3>
+                <div className="grid grid-cols-4 gap-1.5 text-xs font-bold">
+                  {[0.5, 1.0, 2.0, 5.0].map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setSimSpeed(s)}
+                      className={`py-1.5 rounded-lg transition ${
+                        simSpeed === s
+                          ? 'bg-sky-600 text-white shadow'
+                          : (isLight ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-slate-800 text-slate-300 hover:bg-slate-700')
+                      }`}
+                    >
+                      {s}x
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          {/* =============================================================== */}
+          <!-- BOTTOM STATUS FOOTER -->
+          {/* =============================================================== */}
+          <footer className={`h-10 border-t px-4 flex items-center justify-between text-xs font-mono z-10 shrink-0 ${bgHeader}`}>
+            <div className="flex items-center space-x-3">
+              <span>STEP: <b className="text-sky-600 dark:text-sky-400">{stepCount}</b></span>
+              <span className={textMuted}>|</span>
+              <span>MODE: <b className="text-emerald-500 font-bold">{isPlaying ? 'SIMULATE (50 Hz)' : 'PAUSED'}</b></span>
+              <span className={`hidden md:inline ${textMuted}`}>|</span>
+              <span className={`hidden md:inline ${textMuted}`}>Theme: <b className="text-amber-500">{theme.toUpperCase()}</b></span>
+            </div>
+            <div className="hidden lg:flex items-center space-x-3 text-slate-500">
+              <span>Controls: [W/A/S/D] Steer | [Space] Fire Gun/Shell | [F] Missile | [1-9] Switch Unit | [M] Manual/Auto</span>
+            </div>
+          </footer>
+
+          {/* =============================================================== */}
+          <!-- MODAL: CUSTOM FLEET & MAP BUILDER -->
+          {/* =============================================================== */}
+          {isCustomizerOpen && (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className={`border rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto ${bgCard}`}>
+                
+                <div className="flex items-center justify-between border-b pb-3 border-slate-200 dark:border-slate-800">
+                  <div>
+                    <h2 className="text-lg font-black text-amber-500 flex items-center space-x-2">
+                      <span>🛠️</span>
+                      <span>CUSTOM BATTLESPACE & FLEET BUILDER</span>
+                    </h2>
+                    <p className={`text-xs ${textMuted}`}>Choose map topography and customize Blue (Your side) & Red (Enemy) vehicles.</p>
+                  </div>
+                  <button onClick={() => setIsCustomizerOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl font-bold p-1">✕</button>
+                </div>
+
+                {/* 1. Map Terrain Picker */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-sky-500 mb-2">1. Select Battlefield Map Terrain</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {[
+                      { id: 'archipelago', icon: '🏝️', title: 'Archipelago', desc: 'Islands & Sea Straits' },
+                      { id: 'desert', icon: '🏜️', title: 'Desert Sands', desc: 'Open Armor Dunes' },
+                      { id: 'mountain', icon: '⛰️', title: 'Mountain Ridge', desc: 'Radar Masking Canyons' },
+                      { id: 'ocean', icon: '🌊', title: 'Deep Ocean', desc: 'Naval Fleet Arena' }
+                    ].map(m => (
+                      <div
+                        key={m.id}
+                        onClick={() => setMapTerrain(m.id)}
+                        className={`cursor-pointer rounded-xl p-3 text-center transition flex flex-col items-center border ${
+                          mapTerrain === m.id
+                            ? 'border-2 border-sky-500 bg-sky-500/10 glow-sky'
+                            : (isLight ? 'border-slate-300 bg-slate-50 hover:border-slate-400' : 'border-slate-800 bg-slate-900 hover:border-slate-700')
+                        }`}
+                      >
+                        <span className="text-2xl mb-1">{m.icon}</span>
+                        <span className="text-xs font-bold">{m.title}</span>
+                        <span className={`text-[10px] ${textMuted}`}>{m.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Army Composition Controls (Blue vs Red) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Blue Forces */}
+                  <div className={`border rounded-xl p-4 space-y-3 ${isLight ? 'bg-sky-50/50 border-sky-200' : 'bg-slate-900/50 border-sky-900/50'}`}>
+                    <div className="flex items-center justify-between border-b pb-2 border-sky-500/30">
+                      <span className="font-black text-xs text-sky-600 dark:text-sky-400 tracking-wide">🔵 BLUE FORCES (YOUR SIDE)</span>
+                      <span className="text-[11px] font-mono font-bold text-sky-600">
+                        {fleetConfig.blue.ac1 + fleetConfig.blue.ac2 + fleetConfig.blue.tank + fleetConfig.blue.ship} Units
+                      </span>
+                    </div>
+
+                    {[
+                      { key: 'ac1', icon: '✈️', name: 'AC1 Air Fighters' },
+                      { key: 'ac2', icon: '🚀', name: 'AC2 Interceptors' },
+                      { key: 'tank', icon: '🛡️', name: 'SAM Mobile Tanks' },
+                      { key: 'ship', icon: '🚢', name: 'Combat Warships' }
+                    ].map(u => (
+                      <div key={u.key} className="flex items-center justify-between text-xs">
+                        <span className="font-bold">{u.icon} {u.name}</span>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => setFleetConfig(prev => ({
+                              ...prev,
+                              blue: { ...prev.blue, [u.key]: Math.max(0, prev.blue[u.key] - 1) }
+                            }))}
+                            className={`px-2.5 py-1 rounded font-bold ${isLight ? 'bg-slate-200 hover:bg-slate-300' : 'bg-slate-800 hover:bg-slate-700'}`}
+                          >
+                            -
+                          </button>
+                          <span className="font-mono font-bold text-sm w-4 text-center">{fleetConfig.blue[u.key]}</span>
+                          <button
+                            onClick={() => setFleetConfig(prev => ({
+                              ...prev,
+                              blue: { ...prev.blue, [u.key]: Math.min(8, prev.blue[u.key] + 1) }
+                            }))}
+                            className={`px-2.5 py-1 rounded font-bold ${isLight ? 'bg-slate-200 hover:bg-slate-300' : 'bg-slate-800 hover:bg-slate-700'}`}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Red Forces */}
+                  <div className={`border rounded-xl p-4 space-y-3 ${isLight ? 'bg-rose-50/50 border-rose-200' : 'bg-slate-900/50 border-rose-900/50'}`}>
+                    <div className="flex items-center justify-between border-b pb-2 border-rose-500/30">
+                      <span className="font-black text-xs text-rose-600 dark:text-rose-400 tracking-wide">🔴 RED FORCES (ENEMY SIDE)</span>
+                      <span className="text-[11px] font-mono font-bold text-rose-600">
+                        {fleetConfig.red.ac1 + fleetConfig.red.ac2 + fleetConfig.red.tank + fleetConfig.red.ship} Units
+                      </span>
+                    </div>
+
+                    {[
+                      { key: 'ac1', icon: '✈️', name: 'Red Fighters' },
+                      { key: 'ac2', icon: '🚀', name: 'Red Interceptors' },
+                      { key: 'tank', icon: '🛡️', name: 'Red SAM Tanks' },
+                      { key: 'ship', icon: '🚢', name: 'Red Corvettes' }
+                    ].map(u => (
+                      <div key={u.key} className="flex items-center justify-between text-xs">
+                        <span className="font-bold">{u.icon} {u.name}</span>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => setFleetConfig(prev => ({
+                              ...prev,
+                              red: { ...prev.red, [u.key]: Math.max(0, prev.red[u.key] - 1) }
+                            }))}
+                            className={`px-2.5 py-1 rounded font-bold ${isLight ? 'bg-slate-200 hover:bg-slate-300' : 'bg-slate-800 hover:bg-slate-700'}`}
+                          >
+                            -
+                          </button>
+                          <span className="font-mono font-bold text-sm w-4 text-center">{fleetConfig.red[u.key]}</span>
+                          <button
+                            onClick={() => setFleetConfig(prev => ({
+                              ...prev,
+                              red: { ...prev.red, [u.key]: Math.min(8, prev.red[u.key] + 1) }
+                            }))}
+                            className={`px-2.5 py-1 rounded font-bold ${isLight ? 'bg-slate-200 hover:bg-slate-300' : 'bg-slate-800 hover:bg-slate-700'}`}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div>
+                  <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${textMuted}`}>Quick Presets</label>
+                  <div className="flex flex-wrap gap-2 text-xs font-bold">
+                    {[
+                      {
+                        label: '⚡ Tri-Service Joint (Combined Arms)',
+                        cfg: { blue: { ac1: 1, ac2: 1, tank: 1, ship: 1 }, red: { ac1: 1, ac2: 1, tank: 1, ship: 1 } }
+                      },
+                      {
+                        label: '✈️ Pure Air Dogfight (3v3)',
+                        cfg: { blue: { ac1: 2, ac2: 1, tank: 0, ship: 0 }, red: { ac1: 2, ac2: 1, tank: 0, ship: 0 } }
+                      },
+                      {
+                        label: '🛡️ Armor Blitz (Tanks vs SAMs)',
+                        cfg: { blue: { ac1: 1, ac2: 0, tank: 3, ship: 0 }, red: { ac1: 0, ac2: 1, tank: 3, ship: 0 } }
+                      },
+                      {
+                        label: '🚢 Naval Task Force (Ships + Air)',
+                        cfg: { blue: { ac1: 1, ac2: 0, tank: 0, ship: 2 }, red: { ac1: 1, ac2: 0, tank: 0, ship: 2 } }
+                      }
+                    ].map(p => (
+                      <button
+                        key={p.label}
+                        onClick={() => setFleetConfig(p.cfg)}
+                        className={`px-3 py-1.5 rounded-lg border transition ${isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-300' : 'bg-slate-800 hover:bg-slate-700 border-slate-700'}`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Deploy Button */}
+                <div className="border-t pt-3 border-slate-200 dark:border-slate-800">
+                  <button
+                    onClick={() => {
+                      setIsCustomizerOpen(false);
+                      initFleet(fleetConfig, mapTerrain);
+                      showToast(`🚀 DEPLOYED ${mapTerrain.toUpperCase()} BATTLESPACE!`);
+                    }}
+                    className="w-full bg-gradient-to-r from-emerald-500 to-sky-500 hover:from-emerald-400 hover:to-sky-400 text-slate-950 font-black text-sm py-3 rounded-xl shadow-lg transition glow-green flex items-center justify-center space-x-2"
+                  >
+                    <span>🚀</span>
+                    <span>DEPLOY CUSTOM BATTLESPACE NOW</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
     }
 
-    // =====================================================================
-    // 4 HIGHLY DISTINCT DETAILED MAP TERRAIN RENDERERS
-    // =====================================================================
-    function drawTerrainFeatures() {
-      if (activeMapTerrain === 'desert') {
-        // -------------------------------------------------------------
-        // 1. DESERT SANDS: Rich golden desert, rolling dunes, rock mesa, runway
-        // -------------------------------------------------------------
-        const sandGrad = ctx.createLinearGradient(0, 0, width, height);
-        sandGrad.addColorStop(0, '#2b1a0e');
-        sandGrad.addColorStop(0.5, '#3d2514');
-        sandGrad.addColorStop(1, '#24140a');
-        ctx.fillStyle = sandGrad;
-        ctx.fillRect(0, 0, width, height);
-
-        // Huge sweeping golden sand dune ridges
-        ctx.fillStyle = '#543012';
-        ctx.beginPath();
-        ctx.moveTo(0, height * 0.28);
-        ctx.bezierCurveTo(width * 0.35, height * 0.15, width * 0.65, height * 0.45, width, height * 0.32);
-        ctx.lineTo(width, height * 0.68);
-        ctx.bezierCurveTo(width * 0.65, height * 0.78, width * 0.25, height * 0.55, 0, height * 0.62);
-        ctx.closePath();
-        ctx.fill();
-
-        // Golden dune crest highlight lines
-        ctx.strokeStyle = '#b45309';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(0, height * 0.28);
-        ctx.bezierCurveTo(width * 0.35, height * 0.15, width * 0.65, height * 0.45, width, height * 0.32);
-        ctx.stroke();
-
-        ctx.strokeStyle = '#d97706';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.moveTo(0, height * 0.62);
-        ctx.bezierCurveTo(width * 0.4, height * 0.52, width * 0.75, height * 0.72, width, height * 0.68);
-        ctx.stroke();
-
-        // Rocky Mesa Plateau in Central-North
-        const mesaPt = kmToCanvas(50, 24);
-        ctx.fillStyle = '#451a03';
-        ctx.beginPath();
-        ctx.roundRect(mesaPt.x - 70, mesaPt.y - 40, 140, 80, 16);
-        ctx.fill();
-        ctx.strokeStyle = '#9a3412';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.fillStyle = '#fde68a';
-        ctx.font = 'bold 10px monospace';
-        ctx.fillText('⛰️ MESA ROCK ESCARPMENT (ALT: 1,800m)', mesaPt.x - 85, mesaPt.y - 45);
-
-        // Blue Forward Operating Airbase (West side)
-        const basePt = kmToCanvas(15, 50);
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(basePt.x - 45, basePt.y - 18, 90, 36);
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(basePt.x - 45, basePt.y - 18, 90, 36);
-
-        ctx.strokeStyle = '#fef08a';
-        ctx.setLineDash([8, 8]);
-        ctx.beginPath();
-        ctx.moveTo(basePt.x - 40, basePt.y); ctx.lineTo(basePt.x + 40, basePt.y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = 'bold 9px monospace';
-        ctx.fillText('BLUE AIRBASE [FOB ALFA]', basePt.x - 50, basePt.y - 24);
-
-        // Red Armored Fortress (East side)
-        const redBase = kmToCanvas(85, 50);
-        ctx.fillStyle = '#2a0808';
-        ctx.fillRect(redBase.x - 40, redBase.y - 20, 80, 40);
-        ctx.strokeStyle = '#f43f5e';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(redBase.x - 40, redBase.y - 20, 80, 40);
-        ctx.fillStyle = '#f43f5e';
-        ctx.font = 'bold 9px monospace';
-        ctx.fillText('RED BASTION FORTRESS', redBase.x - 50, redBase.y - 26);
-
-        // Desert Highway Road
-        ctx.strokeStyle = '#78350f';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        const r1 = kmToCanvas(15, 50);
-        const r2 = kmToCanvas(85, 50);
-        ctx.moveTo(r1.x, r1.y); ctx.lineTo(r2.x, r2.y);
-        ctx.stroke();
-
-        // Desert Oasis in South
-        const oasisPt = kmToCanvas(50, 82);
-        ctx.fillStyle = '#0891b2';
-        ctx.beginPath();
-        ctx.ellipse(oasisPt.x, oasisPt.y, 45, 25, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#15803d';
-        ctx.beginPath();
-        ctx.arc(oasisPt.x - 30, oasisPt.y, 14, 0, Math.PI * 2);
-        ctx.arc(oasisPt.x + 30, oasisPt.y, 14, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#67e8f9';
-        ctx.font = '9px monospace';
-        ctx.fillText('🌴 AL-KHAFI OASIS', oasisPt.x - 35, oasisPt.y - 30);
-
-      } else if (activeMapTerrain === 'mountain') {
-        // -------------------------------------------------------------
-        // 2. MOUNTAIN RIDGE: Jagged snowy peaks, slate canyons, radar shadow zones
-        // -------------------------------------------------------------
-        const mtnGrad = ctx.createLinearGradient(0, 0, width, height);
-        mtnGrad.addColorStop(0, '#090d16');
-        mtnGrad.addColorStop(0.5, '#111827');
-        mtnGrad.addColorStop(1, '#080c14');
-        ctx.fillStyle = mtnGrad;
-        ctx.fillRect(0, 0, width, height);
-
-        // Valley contours
-        ctx.strokeStyle = 'rgba(71, 85, 105, 0.4)';
-        ctx.lineWidth = 1;
-        [0.2, 0.35, 0.65, 0.8].forEach(factor => {
-          ctx.beginPath();
-          ctx.moveTo(width * 0.45, 0);
-          ctx.bezierCurveTo(width * (0.45 - factor * 0.1), height * 0.3, width * (0.55 + factor * 0.1), height * 0.7, width * 0.5, height);
-          ctx.stroke();
-        });
-
-        // 3 Massive Mountain Ranges down the center
-        const peaks = [
-          { xKm: 50, yKm: 22, r: 85, label: 'MT. TRISUL (6,800m)' },
-          { xKm: 48, yKm: 50, r: 105, label: 'NANDA DEVI SPINE (7,400m)' },
-          { xKm: 52, yKm: 78, r: 90, label: 'KANCHENJUNGA RIDGE (7,100m)' }
-        ];
-
-        peaks.forEach(p => {
-          const pt = kmToCanvas(p.xKm, p.yKm);
-          ctx.fillStyle = '#1e293b';
-          ctx.beginPath();
-          ctx.arc(pt.x, pt.y, p.r, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#334155';
-          ctx.beginPath();
-          ctx.arc(pt.x - 6, pt.y - 6, p.r * 0.7, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#f8fafc';
-          ctx.beginPath();
-          ctx.arc(pt.x - 12, pt.y - 12, p.r * 0.3, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Radar Shadow Masking Zone
-          ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
-          ctx.lineWidth = 1.5;
-          ctx.setLineDash([4, 4]);
-          ctx.beginPath();
-          ctx.arc(pt.x, pt.y, p.r * 1.25, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.setLineDash([]);
-
-          ctx.fillStyle = '#cbd5e1';
-          ctx.font = 'bold 9px monospace';
-          ctx.fillText(`⛰️ ${p.label}`, pt.x - 55, pt.y - p.r - 8);
-        });
-
-        // Mountain Valley River
-        ctx.strokeStyle = '#0284c7';
-        ctx.lineWidth = 3.5;
-        ctx.beginPath();
-        ctx.moveTo(width * 0.3, 0);
-        ctx.bezierCurveTo(width * 0.45, height * 0.35, width * 0.42, height * 0.65, width * 0.6, height);
-        ctx.stroke();
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = '9px monospace';
-        ctx.fillText('◄ RIVER GORGE PASS ►', width * 0.41, height * 0.48);
-
-      } else if (activeMapTerrain === 'ocean') {
-        // -------------------------------------------------------------
-        // 3. DEEP OCEAN: Deep blue oceanic waters, bathymetry, Aircraft Carrier deck
-        // -------------------------------------------------------------
-        const seaGrad = ctx.createLinearGradient(0, 0, width, height);
-        seaGrad.addColorStop(0, '#020d24');
-        seaGrad.addColorStop(0.5, '#04173d');
-        seaGrad.addColorStop(1, '#020a1c');
-        ctx.fillStyle = seaGrad;
-        ctx.fillRect(0, 0, width, height);
-
-        // Bathymetric Depth Contour Rings
-        ctx.strokeStyle = 'rgba(14, 116, 144, 0.35)';
-        ctx.lineWidth = 1.5;
-        [100, 220, 360, 520].forEach(r => {
-          ctx.beginPath();
-          ctx.arc(width * 0.5, height * 0.5, r, 0, Math.PI * 2);
-          ctx.stroke();
-        });
-
-        // Blue Aircraft Carrier (INS Vikrant Deck) on West
-        const carrierPt = kmToCanvas(16, 50);
-        ctx.fillStyle = '#1e293b';
-        ctx.beginPath();
-        ctx.roundRect(carrierPt.x - 22, carrierPt.y - 75, 44, 150, 8);
-        ctx.fill();
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.strokeStyle = '#facc15';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(carrierPt.x, carrierPt.y - 70);
-        ctx.lineTo(carrierPt.x - 8, carrierPt.y + 65);
-        ctx.stroke();
-
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = 'bold 10px monospace';
-        ctx.fillText('🚢 CARRIER STRIKE GROUP [INS VIKRANT]', carrierPt.x - 70, carrierPt.y - 85);
-
-        // Sonar Buoys
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
-        ctx.setLineDash([3, 5]);
-        ctx.beginPath();
-        ctx.arc(width * 0.35, height * 0.35, 45, 0, Math.PI * 2);
-        ctx.arc(width * 0.65, height * 0.65, 45, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = '9px monospace';
-        ctx.fillText('📡 SONAR BUOY PATROL ZONE', width * 0.35 - 55, height * 0.35 - 52);
-
-      } else {
-        // -------------------------------------------------------------
-        // 4. COASTAL ARCHIPELAGO: Islands, bays, straits, green landmasses
-        // -------------------------------------------------------------
-        const archGrad = ctx.createLinearGradient(0, 0, width, height);
-        archGrad.addColorStop(0, '#03142e');
-        archGrad.addColorStop(0.5, '#05224d');
-        archGrad.addColorStop(1, '#020f26');
-        ctx.fillStyle = archGrad;
-        ctx.fillRect(0, 0, width, height);
-
-        const islands = [
-          { xKm: 35, yKm: 35, rx: 75, ry: 50, rot: 0.3, name: 'NORTH ANDAMAN ATOLL' },
-          { xKm: 65, yKm: 65, rx: 85, ry: 60, rot: -0.4, name: 'GREAT NICOBAR FORT' },
-          { xKm: 50, yKm: 85, rx: 65, ry: 35, rot: 0.1, name: 'SOUTHERN REEF' }
-        ];
-
-        islands.forEach(isl => {
-          const pt = kmToCanvas(isl.xKm, isl.yKm);
-
-          // Turquoise shallow reef
-          ctx.fillStyle = 'rgba(6, 182, 212, 0.25)';
-          ctx.beginPath();
-          ctx.ellipse(pt.x, pt.y, isl.rx * 1.3, isl.ry * 1.3, isl.rot, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Sandy beach rim
-          ctx.fillStyle = '#ca8a04';
-          ctx.beginPath();
-          ctx.ellipse(pt.x, pt.y, isl.rx * 1.08, isl.ry * 1.08, isl.rot, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Lush tropical green interior
-          ctx.fillStyle = '#15803d';
-          ctx.beginPath();
-          ctx.ellipse(pt.x, pt.y, isl.rx, isl.ry, isl.rot, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#166534';
-          ctx.beginPath();
-          ctx.ellipse(pt.x - 5, pt.y - 5, isl.rx * 0.6, isl.ry * 0.6, isl.rot, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#fef08a';
-          ctx.font = 'bold 9px monospace';
-          ctx.fillText(`🏝️ ${isl.name}`, pt.x - 45, pt.y - isl.ry - 8);
-        });
-
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = 'bold 10px monospace';
-        ctx.fillText('◄ MALACCA STRATEGIC STRAIT (NAVAL ACCESS) ►', width * 0.25, height * 0.52);
-      }
-    }
-
-    // Animation Loop
-    function loop() {
-      updatePhysics();
-      draw();
-      requestAnimationFrame(loop);
-    }
-    requestAnimationFrame(loop);
-
-    // =====================================================================
-    // UI BINDERS & INTERACTIVE CONTROLS
-    // =====================================================================
-    function getSelectedUnit() {
-      return entities.find(e => e.id === selectedUnitId) || entities[0];
-    }
-
-    function renderUnitSelectorStrip() {
-      const container = document.getElementById('unit-selector-buttons');
-      container.innerHTML = '';
-
-      const blueUnits = entities.filter(e => e.team === 'blue');
-      blueUnits.forEach((u, i) => {
-        const btn = document.createElement('button');
-        const icon = u.domain === 'air' ? '✈️' : (u.domain === 'ground' ? '🛡️' : '🚢');
-        const isSel = u.id === selectedUnitId;
-
-        btn.className = `px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1 shrink-0 ${
-          isSel ? 'bg-amber-500 text-slate-950 glow-amber' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-        }`;
-        btn.innerHTML = `<span>${icon}</span> <span>${u.id}</span>`;
-        btn.addEventListener('click', () => {
-          selectedUnitId = u.id;
-          renderUnitSelectorStrip();
-          updateControlsUI();
-          updateTelemetryUI();
-        });
-        container.appendChild(btn);
-      });
-    }
-
-    function updateControlsUI() {
-      const u = getSelectedUnit();
-      if (!u) return;
-
-      const title = document.getElementById('ctrl-title');
-      const icon = document.getElementById('ctrl-domain-icon');
-      const primLbl = document.getElementById('lbl-primary-weapon');
-      const primIcon = document.getElementById('lbl-primary-icon');
-      const secLbl = document.getElementById('lbl-secondary-weapon');
-      const secIcon = document.getElementById('lbl-secondary-icon');
-      const steerInd = document.getElementById('steer-indicator');
-
-      steerInd.innerText = `${Math.round(u.heading)}°`;
-
-      if (u.domain === 'air') {
-        title.innerText = 'PILOT COCKPIT OVERRIDE';
-        icon.innerText = '✈️';
-        primIcon.innerText = '🔫';
-        primLbl.innerText = 'FIRE 20MM CANNON [SPACE]';
-        secIcon.innerText = '🚀';
-        secLbl.innerText = 'LAUNCH FOX-3 MISSILE [F]';
-      } else if (u.domain === 'ground') {
-        title.innerText = 'TANK COMMANDER & TURRET';
-        icon.innerText = '🛡️';
-        primIcon.innerText = '💥';
-        primLbl.innerText = 'FIRE 120MM TANK CANNON [SPACE]';
-        secIcon.innerText = '🎯';
-        secLbl.innerText = 'LAUNCH SAM AIR DEFENSE [F]';
-      } else {
-        title.innerText = 'WARSHIP HELM & FIRE CONTROL';
-        icon.innerText = '🚢';
-        primIcon.innerText = '⚓';
-        primLbl.innerText = 'FIRE 76MM NAVAL GUN [SPACE]';
-        secIcon.innerText = '🌊';
-        secLbl.innerText = 'LAUNCH CRUISE MISSILE [F]';
-      }
-
-      const manBtn = document.getElementById('btn-toggle-manual');
-      if (manualOverride) {
-        manBtn.innerText = 'MANUAL (Player Active)';
-        manBtn.className = 'text-[10px] font-black px-2.5 py-1 rounded bg-amber-500 text-slate-950 glow-amber';
-      } else {
-        manBtn.innerText = 'AUTO (AI Active)';
-        manBtn.className = 'text-[10px] font-black px-2.5 py-1 rounded bg-emerald-950 border border-emerald-500 text-emerald-300';
-      }
-    }
-
-    function updateTelemetryUI() {
-      const u = getSelectedUnit();
-      if (!u) return;
-
-      document.getElementById('tel-id').innerText = u.id;
-      document.getElementById('tel-class').innerText = `${u.class} (${u.domain.toUpperCase()})`;
-      document.getElementById('tel-pos').innerText = `X: ${u.x.toFixed(1)} km | Y: ${u.y.toFixed(1)} km`;
-      document.getElementById('tel-speed').innerText = `${Math.round(u.speed)} kts | Alt: ${u.alt.toFixed(1)} km`;
-      document.getElementById('tel-heading').innerText = `${Math.round(u.heading)}°`;
-      document.getElementById('steer-indicator').innerText = `${Math.round(u.heading)}°`;
-      document.getElementById('tel-intent').innerText = u.health > 0 ? (manualOverride && u.id === selectedUnitId ? 'MANUAL_PLAYER_CONTROL' : u.intent) : 'DESTROYED';
-      
-      const pct = Math.round((u.health / u.maxHealth) * 100);
-      document.getElementById('tel-health-val').innerText = `${pct}%`;
-      document.getElementById('tel-health-bar').style.width = `${pct}%`;
-      document.getElementById('tel-health-bar').className = pct > 50 ? 'bg-emerald-500 h-full' : (pct > 25 ? 'bg-amber-500 h-full' : 'bg-rose-500 h-full');
-      
-      document.getElementById('tel-cannon').innerText = u.ammo;
-      document.getElementById('tel-missiles').innerText = u.missiles;
-
-      const badge = document.getElementById('target-team-badge');
-      badge.innerText = u.team.toUpperCase();
-      badge.className = u.team === 'blue' ? 'text-[10px] px-2 py-0.5 rounded font-bold bg-sky-900 text-sky-300' : 'text-[10px] px-2 py-0.5 rounded font-bold bg-rose-900 text-rose-300';
-    }
-
-    function updateHUD() {
-      const blueAlive = entities.filter(e => e.team === 'blue' && e.health > 0).length;
-      const blueTotal = entities.filter(e => e.team === 'blue').length;
-      const redAlive = entities.filter(e => e.team === 'red' && e.health > 0).length;
-      const redTotal = entities.filter(e => e.team === 'red').length;
-
-      document.getElementById('hud-blue-count').innerText = blueTotal;
-      document.getElementById('hud-blue-alive').innerText = blueAlive;
-      document.getElementById('hud-red-count').innerText = redTotal;
-      document.getElementById('hud-red-alive').innerText = redAlive;
-    }
-
-    // Canvas Click Selection
-    canvas.addEventListener('click', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const clickKm = canvasToKm(e.clientX - rect.left, e.clientY - rect.top);
-
-      let nearest = null;
-      let minD = 999;
-      entities.forEach(ent => {
-        const d = Math.hypot(ent.x - clickKm.x, ent.y - clickKm.y);
-        if (d < minD && d < 8) {
-          minD = d;
-          nearest = ent;
-        }
-      });
-      if (nearest) {
-        selectedUnitId = nearest.id;
-        renderUnitSelectorStrip();
-        updateControlsUI();
-        updateTelemetryUI();
-      }
-    });
-
-    document.getElementById('btn-toggle-manual').addEventListener('click', () => {
-      manualOverride = !manualOverride;
-      updateControlsUI();
-      updateTelemetryUI();
-    });
-
-    // Steering Buttons
-    document.getElementById('btn-left').addEventListener('click', () => {
-      manualOverride = true;
-      const u = getSelectedUnit();
-      if (u) {
-        const turnStep = u.domain === 'air' ? 12 : (u.domain === 'ground' ? 15 : 6);
-        u.heading = (u.heading - turnStep + 360) % 360;
-        updateControlsUI();
-      }
-    });
-    document.getElementById('btn-right').addEventListener('click', () => {
-      manualOverride = true;
-      const u = getSelectedUnit();
-      if (u) {
-        const turnStep = u.domain === 'air' ? 12 : (u.domain === 'ground' ? 15 : 6);
-        u.heading = (u.heading + turnStep) % 360;
-        updateControlsUI();
-      }
-    });
-    document.getElementById('btn-fwd').addEventListener('click', () => {
-      manualOverride = true;
-      const u = getSelectedUnit();
-      if (u) {
-        const maxSpd = u.domain === 'air' ? 950 : (u.domain === 'ground' ? 60 : 40);
-        u.speed = Math.min(u.speed + (u.domain === 'air' ? 60 : 5), maxSpd);
-        updateTelemetryUI();
-      }
-    });
-    document.getElementById('btn-back').addEventListener('click', () => {
-      manualOverride = true;
-      const u = getSelectedUnit();
-      if (u) {
-        const minSpd = u.domain === 'air' ? 150 : 0;
-        u.speed = Math.max(u.speed - (u.domain === 'air' ? 60 : 5), minSpd);
-        updateTelemetryUI();
-      }
-    });
-
-    document.getElementById('btn-fire-primary').addEventListener('click', () => {
-      manualOverride = true;
-      triggerWeaponFire(getSelectedUnit(), 'primary');
-    });
-    document.getElementById('btn-fire-secondary').addEventListener('click', () => {
-      manualOverride = true;
-      triggerWeaponFire(getSelectedUnit(), 'secondary');
-    });
-
-    document.getElementById('btn-play').addEventListener('click', () => {
-      isPlaying = !isPlaying;
-      document.getElementById('btn-play').innerText = isPlaying ? 'Pause' : 'Play';
-      document.getElementById('sim-mode').innerText = isPlaying ? 'SIMULATE (50 Hz)' : 'PAUSED';
-    });
-
-    document.getElementById('btn-reset').addEventListener('click', () => {
-      stepCount = 0;
-      entities = buildFleetEntities();
-      renderUnitSelectorStrip();
-      updateControlsUI();
-      updateTelemetryUI();
-      showToast('🔄 Battlespace Reset to Initial Vector');
-    });
-
-    document.querySelectorAll('.speed-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.speed-btn').forEach(b => {
-          b.className = 'speed-btn bg-slate-800 py-1.5 rounded-lg text-slate-300 font-bold';
-        });
-        e.target.className = 'speed-btn bg-sky-600 py-1.5 rounded-lg text-white font-bold';
-        simSpeed = parseFloat(e.target.dataset.speed);
-      });
-    });
-
-    document.getElementById('chk-radar').addEventListener('change', e => toggles.radar = e.target.checked);
-    document.getElementById('chk-wez').addEventListener('change', e => toggles.wez = e.target.checked);
-    document.getElementById('chk-trails').addEventListener('change', e => toggles.trails = e.target.checked);
-    document.getElementById('chk-grid').addEventListener('change', e => toggles.grid = e.target.checked);
-    document.getElementById('chk-terrain').addEventListener('change', e => toggles.terrain = e.target.checked);
-
-    // Keyboard Shortcuts
-    window.addEventListener('keydown', (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-
-      if (e.code === 'KeyW' || e.code === 'ArrowUp') {
-        document.getElementById('btn-fwd').click();
-      } else if (e.code === 'KeyS' || e.code === 'ArrowDown') {
-        document.getElementById('btn-back').click();
-      } else if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
-        document.getElementById('btn-left').click();
-      } else if (e.code === 'KeyD' || e.code === 'ArrowRight') {
-        document.getElementById('btn-right').click();
-      } else if (e.code === 'Space') {
-        e.preventDefault();
-        document.getElementById('btn-fire-primary').click();
-      } else if (e.code === 'KeyF' || e.code === 'KeyR') {
-        document.getElementById('btn-fire-secondary').click();
-      } else if (e.code === 'KeyM') {
-        document.getElementById('btn-toggle-manual').click();
-      } else if (e.code === 'Digit1') {
-        selectUnitByIndex(0);
-      } else if (e.code === 'Digit2') {
-        selectUnitByIndex(1);
-      } else if (e.code === 'Digit3') {
-        selectUnitByIndex(2);
-      } else if (e.code === 'Digit4') {
-        selectUnitByIndex(3);
-      }
-    });
-
-    function selectUnitByIndex(idx) {
-      const blueUnits = entities.filter(e => e.team === 'blue');
-      if (blueUnits[idx]) {
-        selectedUnitId = blueUnits[idx].id;
-        renderUnitSelectorStrip();
-        updateControlsUI();
-        updateTelemetryUI();
-      }
-    }
-
-    // Modal logic
-    const modal = document.getElementById('customizer-modal');
-    document.getElementById('btn-open-customizer').addEventListener('click', () => {
-      modal.classList.remove('hidden');
-    });
-    document.getElementById('btn-close-modal').addEventListener('click', () => {
-      modal.classList.add('hidden');
-    });
-
-    // Fleet Counters
-    document.querySelectorAll('.cnt-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const target = e.target.dataset.target;
-        const delta = parseInt(e.target.dataset.delta);
-        const [team, type] = target.split('-');
-        
-        fleetConfig[team][type] = Math.max(0, Math.min(8, fleetConfig[team][type] + delta));
-        document.getElementById(`${target}-val`).innerText = fleetConfig[team][type];
-
-        const bTotal = fleetConfig.blue.ac1 + fleetConfig.blue.ac2 + fleetConfig.blue.tank + fleetConfig.blue.ship;
-        const rTotal = fleetConfig.red.ac1 + fleetConfig.red.ac2 + fleetConfig.red.tank + fleetConfig.red.ship;
-        document.getElementById('builder-blue-total').innerText = `${bTotal} Units`;
-        document.getElementById('builder-red-total').innerText = `${rTotal} Units`;
-      });
-    });
-
-    // Modal Presets
-    document.querySelectorAll('.preset-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const p = e.target.dataset.preset;
-        if (p === 'joint') {
-          fleetConfig = { blue: { ac1: 1, ac2: 1, tank: 1, ship: 1 }, red: { ac1: 1, ac2: 1, tank: 1, ship: 1 } };
-        } else if (p === 'air') {
-          fleetConfig = { blue: { ac1: 2, ac2: 1, tank: 0, ship: 0 }, red: { ac1: 2, ac2: 1, tank: 0, ship: 0 } };
-        } else if (p === 'tanks') {
-          fleetConfig = { blue: { ac1: 1, ac2: 0, tank: 3, ship: 0 }, red: { ac1: 0, ac2: 1, tank: 3, ship: 0 } };
-        } else if (p === 'naval') {
-          fleetConfig = { blue: { ac1: 1, ac2: 0, tank: 0, ship: 2 }, red: { ac1: 1, ac2: 0, tank: 0, ship: 2 } };
-        }
-
-        for (const team of ['blue', 'red']) {
-          for (const type of ['ac1', 'ac2', 'tank', 'ship']) {
-            document.getElementById(`${team}-${type}-val`).innerText = fleetConfig[team][type];
-          }
-        }
-        document.getElementById('builder-blue-total').innerText = `${fleetConfig.blue.ac1 + fleetConfig.blue.ac2 + fleetConfig.blue.tank + fleetConfig.blue.ship} Units`;
-        document.getElementById('builder-red-total').innerText = `${fleetConfig.red.ac1 + fleetConfig.red.ac2 + fleetConfig.red.tank + fleetConfig.red.ship} Units`;
-      });
-    });
-
-    // Deploy Custom Battlespace Button
-    document.getElementById('btn-deploy-custom').addEventListener('click', () => {
-      modal.classList.add('hidden');
-      stepCount = 0;
-      entities = buildFleetEntities();
-      renderUnitSelectorStrip();
-      updateControlsUI();
-      updateTelemetryUI();
-      showToast(`🚀 ${activeMapTerrain.toUpperCase()} BATTLESPACE DEPLOYED!`);
-    });
+    // Mount React 18 Application
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<TacticalSimulatorApp />);
   </script>
 </body>
 </html>
