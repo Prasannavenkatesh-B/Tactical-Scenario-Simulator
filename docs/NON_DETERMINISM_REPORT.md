@@ -9,10 +9,10 @@ This report provides rigorous empirical and statistical validation confirming th
 | Metric | Requirement | Observed Value | Result |
 |---|---|---|---|
 | Outcome Distribution χ² (diff seeds) | p < 0.05 | 4.5400e-05 | PASS |
-| Cross-Seed Levene Variance Test | p < 0.05 | 2.4800e-04 | PASS |
+| Cross-Seed Levene Variance Test | p < 0.05 | 2.4817e-04 | PASS |
 | Same-Seed χ² Reproducibility | p ≈ 1.0 | 1.0000 | PASS |
 | Trajectory Modes (K-Means) | >= 3 clusters | 4 clusters | PASS |
-| Action Distribution Entropy (norm) | > 0.50 | 0.9918 | PASS |
+| Action Distribution Entropy (norm) | > 0.50 | 0.9941 | PASS |
 | **Overall DRDO Acceptance Verdict** | **All Met** | **PASS** | **PASS** |
 
 ## 2. Same-Seed Reproducibility
@@ -36,23 +36,23 @@ Varying scenario seeds inject stochastic initializations, sensor noise, and expl
 ## 4. Action Stochasticity
 When sampling actions for a fixed observation, low-level policies retain entropy to prevent exploitable, static behavioral patterns.
 
-- **Normalized Shannon Entropy:** `0.9918` (Threshold: > 0.50)
+- **Normalized Shannon Entropy:** `0.9941` (Threshold: > 0.50)
 - **Unique Actions Observed:** `13`
-- **Most Common Action Frequency:** `0.0880`
+- **Most Common Action Frequency:** `0.1160`
 
 ## 5. Trajectory Diversity
 Agent spatial endpoints across episodes are clustered using K-Means (k=5). A minimum of 3 distinct clusters (each with >= 2 members) proves multi-modal tactical maneuvers.
 
 - **Distinct Spatial Clusters (>= 2 members):** `4`
 - **Clustering Inertia:** `0.00`
-- **Silhouette Score:** `0.3851`
+- **Silhouette Score:** `0.3857`
 - **Normalized Diversity Score:** `0.8000`
 
 ## 6. Behavioral Entropy
 Tracks distribution of action categories per timestep across episodes to ensure consistent tactical fluidity.
 
-- **Mean Timestep Entropy:** `6.1335 nats`
-- **Standard Deviation of Entropy:** `0.0130 nats`
+- **Mean Timestep Entropy:** `6.1086 nats`
+- **Standard Deviation of Entropy:** `0.0348 nats`
 - **Action Sequence Normalized Entropy:** `0.7200`
 
 ## 7. Statistical Test Results (χ², Levene, CV, KS)
@@ -60,8 +60,8 @@ Tracks distribution of action categories per timestep across episodes to ensure 
 | Test Name | Statistic | p-value | Significance Threshold | Status |
 |---|---|---|---|---|
 | Chi-Square (χ²) Goodness-of-Fit | 20.0000 | 4.5400e-05 | p < 0.05 | PASS |
-| Levene's Test for Equality of Variances | 20.6382 | 2.4800e-04 | p < 0.05 | PASS |
-| Coefficient of Variation (CV) | 0.3886 | N/A | CV > 0.10 | PASS |
+| Levene's Test for Equality of Variances | 20.7013 | 2.4817e-04 | p < 0.05 | PASS |
+| Coefficient of Variation (CV) | 0.3893 | N/A | CV > 0.10 | PASS |
 | Two-Sample Kolmogorov-Smirnov (KS) | 0.5800 | 4.0476e-08 | p < 0.05 | PASS |
 
 ## 8. Conclusion & DRDO Acceptance Verdict

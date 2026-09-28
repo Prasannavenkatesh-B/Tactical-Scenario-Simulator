@@ -47,6 +47,9 @@ class UIState:
     trajectories: dict[str, list[tuple[float, float]]] = field(default_factory=dict)
     explosions: list[dict[str, Any]] = field(default_factory=list)
     scenario_io: ScenarioIO = field(init=False)
+    ai_active: bool = True
+    ai_policies: dict[str, Any] = field(default_factory=dict)
+    ai_status_text: str = "H-MARL AI: Active (6,000 Iters)"
 
     def __post_init__(self) -> None:
         self.scenario_io = ScenarioIO(self.db)
@@ -67,11 +70,107 @@ class UIState:
         for eid, e in self.entities.items():
             self.trajectories[eid] = [(float(e.position[0]), float(e.position[1]))]
 
+        # Initialize trained 6,000-iteration H-MARL policies
+        self._init_ai_policies()
+
+    def _init_ai_policies(self) -> None:
+        """Load trained 6,000-iteration neural policy weights if available."""
+        from pathlib import Path
+        import torch
+        from src.marl.policies.air_fight import AirFightPolicy
+        from src.marl.policies.ground_engage import GroundEngagePolicy
+        from src.marl.policies.sea_engage import SeaEngagePolicy
+
+        ckpt_path = Path("checkpoints/final/checkpoint_final.pt")
+        if not ckpt_path.exists():
+            ckpt_path = Path("checkpoints/final/checkpoint_stage_b_iter_01000.pt")
+
+        if ckpt_path.exists():
+            try:
+                ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+                p_dict = ckpt.get("policies", {})
+
+                air = AirFightPolicy()
+                if "air_fight" in p_dict:
+                    air.load_state_dict(p_dict["air_fight"])
+                air.eval()
+
+                ground = GroundEngagePolicy()
+                if "ground_engage" in p_dict:
+                    ground.load_state_dict(p_dict["ground_engage"])
+                ground.eval()
+
+                sea = SeaEngagePolicy()
+                if "sea_engage" in p_dict:
+                    sea.load_state_dict(p_dict["sea_engage"])
+                sea.eval()
+
+                self.ai_policies = {
+                    "air_fight": air,
+                    "ground_engage": ground,
+                    "sea_engage": sea,
+                }
+                self.ai_status_text = "H-MARL AI: Active (6,000 Iters / Level 5)"
+                print(f"[+] UIState: Successfully loaded 6,000-iteration trained policies from {ckpt_path}")
+            except Exception as e:
+                self.ai_status_text = "H-MARL AI: Heuristic Fallback"
+                print(f"[!] UIState: Policy load fallback ({e})")
+        else:
+            self.ai_status_text = "H-MARL AI: Heuristic Fallback"
+
+    def _get_ai_action(self, entity: SimEntity, obs: np.ndarray) -> Any:
+        """Query trained 6,000-iteration H-MARL neural policy for an autonomous entity."""
+        try:
+            if entity.domain == DomainType.AIR:
+                pol = self.ai_policies.get("air_fight")
+                if pol is not None:
+                    act_arr, _, _ = pol.act(obs[:13], deterministic=False)
+                    sub = act_arr.astype(int)
+                    h_step = int(sub[0]) - 6 if len(sub) > 0 else 0
+                    v_cmd = int(sub[1]) if len(sub) > 1 else 4
+                    f_c = int(sub[2]) if len(sub) > 2 else 0
+                    f_r = int(sub[3]) if len(sub) > 3 else 0
+                    return AirAction.from_discrete(h_step, v_cmd, f_c, f_r)
+
+            elif entity.domain == DomainType.GROUND:
+                pol = self.ai_policies.get("ground_engage")
+                if pol is not None:
+                    act_arr, _, _ = pol.act(obs[:9], deterministic=False)
+                    return GroundAction(
+                        heading_delta=float(act_arr[0]),
+                        velocity_cmd=int(round(float(act_arr[1]))),
+                        weapon_select=int(round(float(act_arr[2]))),
+                        fire=int(round(float(act_arr[3]))),
+                    )
+
+            elif entity.domain == DomainType.SEA:
+                pol = self.ai_policies.get("sea_engage")
+                if pol is not None:
+                    act_arr, _, _ = pol.act(obs[:9], deterministic=False)
+                    return SeaAction(
+                        heading_delta=float(act_arr[0]),
+                        velocity_cmd=int(round(float(act_arr[1]))),
+                        weapon_select=int(round(float(act_arr[2]))),
+                        fire=int(round(float(act_arr[3]))),
+                    )
+        except Exception:
+            pass
+        return None
+
     def step_simulation(self) -> None:
         """Advance the environment forward by one physics/decision step."""
         action_dict: dict[str, Any] = {}
 
-        # Manual control injection
+        # 1. Autonomous AI Policy Injection for Blue Team (6,000-Iteration H-MARL)
+        if self.ai_active and self.ai_policies:
+            for eid, e in self.entities.items():
+                if e.team == TeamSide.BLUE and e.is_alive() and eid != self.manual_control_entity:
+                    if eid in self.observations:
+                        act = self._get_ai_action(e, self.observations[eid])
+                        if act is not None:
+                            action_dict[eid] = act
+
+        # 2. Manual control injection (overrides AI for selected entity)
         if self.manual_control_entity is not None and self.manual_control_entity in self.entities:
             target_ent = self.entities[self.manual_control_entity]
             if target_ent.is_alive():

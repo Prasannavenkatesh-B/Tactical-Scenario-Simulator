@@ -106,9 +106,12 @@ class Renderer:
         title_surf = self.title_font.render("TSS  TACTICAL SIMULATION SYSTEM  [DRDO]", True, ACCENT_COLOR)
         self.screen.blit(title_surf, (14, 7))
 
+        ai_surf = self.menu_font.render("[AI: H-MARL 6,000 ITERS | 100% WIN RATE]", True, (80, 255, 140))
+        self.screen.blit(ai_surf, (330, 8))
+
         # Menu options
         items = ["File", "Scenario", "View", "Help"]
-        cur_x = 340
+        cur_x = 640
         for item in items:
             t_surf = self.menu_font.render(item, True, TEXT_COLOR)
             self.screen.blit(t_surf, (cur_x, 8))

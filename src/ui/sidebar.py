@@ -57,6 +57,18 @@ class Sidebar:
         content_w = self.rect.width - 32
 
         # =====================================================================
+        # 0. H-MARL AI STATUS PANEL
+        # =====================================================================
+        badge_rect = pygame.Rect(cur_x, cur_y, content_w, 36)
+        pygame.draw.rect(self.screen, (12, 28, 20), badge_rect, border_radius=4)
+        pygame.draw.rect(self.screen, (40, 180, 100), badge_rect, 1, border_radius=4)
+        status_txt = self.bold_font.render("● RL AI CONTROLLER: 6,000 ITERS", True, (80, 255, 140))
+        sub_txt = self.small_font.render("Blue: Stage B Neural Model (100% Win)", True, (180, 220, 200))
+        self.screen.blit(status_txt, (badge_rect.x + 8, badge_rect.y + 4))
+        self.screen.blit(sub_txt, (badge_rect.x + 8, badge_rect.y + 19))
+        cur_y += 44
+
+        # =====================================================================
         # 1. ENTITY PALETTE
         # =====================================================================
         cur_y = self._render_section_header("► ENTITY PALETTE (Click then Place)", cur_x, cur_y, content_w)
