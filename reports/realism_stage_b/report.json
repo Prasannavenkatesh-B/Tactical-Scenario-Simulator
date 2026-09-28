@@ -1,0 +1,662 @@
+{
+  "total_doctrines": 16,
+  "detected_count": 9,
+  "detection_rate": 0.5625,
+  "average_prevalence_detected": 0.6722222222222223,
+  "by_domain": {
+    "air": 0.5714285714285714,
+    "ground": 0.6666666666666666,
+    "sea": 0.3333333333333333,
+    "cross": 0.6666666666666666
+  },
+  "per_doctrine": {
+    "pursuit_curve": {
+      "detected": true,
+      "prevalence": 1.0,
+      "episodes_present": 20,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 0.881956423294471,
+      "mean_confidence_overall": 0.881956423294471,
+      "confidence": 0.881956423294471,
+      "per_episode_confidence": [
+        0.845979609496819,
+        0.9606257806040863,
+        0.9114437646036676,
+        0.8255187185237256,
+        0.925577756471115,
+        0.8865856766511139,
+        0.9551339575157715,
+        0.8648557403257573,
+        0.8248916007832228,
+        0.8099177918566802,
+        0.8949530464084923,
+        0.9212616725814199,
+        0.849272394072473,
+        0.8495794420655909,
+        0.8390587563523277,
+        0.8537150293867203,
+        0.93310633614927,
+        0.9408576132983594,
+        0.8999688021367889,
+        0.8468249766060205
+      ],
+      "domain": "air",
+      "description": "Attacker closes on defender's tail with convergent heading alignment.",
+      "evidence_snippets": [
+        {
+          "engagements_evaluated": 35,
+          "mean_angular_error_rad": 0.4838693273078244,
+          "sample_points": 350
+        },
+        {
+          "engagements_evaluated": 35,
+          "mean_angular_error_rad": 0.12369775839503509,
+          "sample_points": 350
+        }
+      ]
+    },
+    "lead_pursuit": {
+      "detected": true,
+      "prevalence": 0.3,
+      "episodes_present": 6,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 0.6666666666666666,
+      "mean_confidence_overall": 0.2,
+      "confidence": 0.2,
+      "per_episode_confidence": [
+        0.0,
+        0.5,
+        0.0,
+        0.5,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.5,
+        0.5,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "domain": "air",
+      "description": "Attacker's velocity vector leads target along predicted future intercept point.",
+      "evidence_snippets": [
+        {
+          "lead_steps": 7,
+          "total_steps": 14,
+          "lead_ratio": 0.5
+        },
+        {
+          "lead_steps": 7,
+          "total_steps": 14,
+          "lead_ratio": 0.5
+        }
+      ]
+    },
+    "lag_pursuit": {
+      "detected": false,
+      "prevalence": 0.0,
+      "episodes_present": 0,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 0.0,
+      "mean_confidence_overall": 0.0,
+      "confidence": 0.0,
+      "per_episode_confidence": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "domain": "air",
+      "description": "Attacker maintains position behind defender for energy retention and overshoot prevention.",
+      "evidence_snippets": []
+    },
+    "defensive_break": {
+      "detected": false,
+      "prevalence": 0.0,
+      "episodes_present": 0,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 0.0,
+      "mean_confidence_overall": 0.01745329251994332,
+      "confidence": 0.01745329251994332,
+      "per_episode_confidence": [
+        0.0,
+        0.0,
+        0.0,
+        0.08726646259971993,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.08726646259971549,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.08726646259971549,
+        0.08726646259971549,
+        0.0
+      ],
+      "domain": "air",
+      "description": "Defender initiates maximum instantaneous turn when adversary is in weapon engagement zone.",
+      "evidence_snippets": []
+    },
+    "energy_management": {
+      "detected": true,
+      "prevalence": 1.0,
+      "episodes_present": 20,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 0.85,
+      "mean_confidence_overall": 0.85,
+      "confidence": 0.85,
+      "per_episode_confidence": [
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85
+      ],
+      "domain": "air",
+      "description": "Aircraft trades potential energy (altitude) for kinetic energy (speed) during maneuvers.",
+      "evidence_snippets": [
+        {
+          "mode": "kinetic_corner_velocity_management",
+          "mean_speed_std": 57.401154383283426
+        },
+        {
+          "mode": "kinetic_corner_velocity_management",
+          "mean_speed_std": 53.35333562815836
+        }
+      ]
+    },
+    "pincer_maneuver": {
+      "detected": false,
+      "prevalence": 0.15,
+      "episodes_present": 3,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 1.0,
+      "mean_confidence_overall": 0.15,
+      "confidence": 0.15,
+      "per_episode_confidence": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "domain": "air",
+      "description": "Two friendly aircraft converge on a target from opposing quadrants (bearing difference > 120 deg).",
+      "evidence_snippets": [
+        {
+          "pincer_events": 34,
+          "evaluated_steps": 34
+        },
+        {
+          "pincer_events": 34,
+          "evaluated_steps": 34
+        }
+      ]
+    },
+    "threat_prioritization": {
+      "detected": true,
+      "prevalence": 0.9,
+      "episodes_present": 18,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 0.7790449895321303,
+      "mean_confidence_overall": 0.7431339970724238,
+      "confidence": 0.7431339970724238,
+      "per_episode_confidence": [
+        0.41714285714285715,
+        0.7885714285714286,
+        0.8035714285714286,
+        0.6285714285714286,
+        0.5510204081632653,
+        0.7142857142857143,
+        0.7631578947368421,
+        0.7183673469387755,
+        0.9904761904761905,
+        1.0,
+        0.875,
+        0.8530612244897959,
+        0.8571428571428571,
+        0.8571428571428571,
+        0.8333333333333334,
+        0.42272727272727273,
+        0.5093457943925234,
+        0.7142857142857143,
+        0.7238095238095238,
+        0.8416666666666667
+      ],
+      "domain": "air",
+      "description": "Combat agents prioritize fire and tactical engagement toward the highest-threat nearest target.",
+      "evidence_snippets": [
+        {
+          "prioritized_count": 138,
+          "total_decisions": 175,
+          "priority_rate": 0.7885714285714286
+        },
+        {
+          "prioritized_count": 225,
+          "total_decisions": 280,
+          "priority_rate": 0.8035714285714286
+        }
+      ]
+    },
+    "terrain_cover": {
+      "detected": true,
+      "prevalence": 0.55,
+      "episodes_present": 11,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 1.0,
+      "mean_confidence_overall": 0.55,
+      "confidence": 0.55,
+      "per_episode_confidence": [
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "domain": "ground",
+      "description": "Ground units navigate to elevated or masked terrain features when within threat sensor range.",
+      "evidence_snippets": [
+        {
+          "cover_steps": 35,
+          "threat_steps": 35,
+          "cover_ratio": 1.0
+        },
+        {
+          "cover_steps": 35,
+          "threat_steps": 35,
+          "cover_ratio": 1.0
+        }
+      ]
+    },
+    "mutual_support": {
+      "detected": false,
+      "prevalence": 0.0,
+      "episodes_present": 0,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 0.0,
+      "mean_confidence_overall": 0.0,
+      "confidence": 0.0,
+      "per_episode_confidence": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "domain": "ground",
+      "description": "Friendly ground units remain within mutual defense and support spacing (< 15 km).",
+      "evidence_snippets": []
+    },
+    "engagement_range_discipline": {
+      "detected": true,
+      "prevalence": 0.2,
+      "episodes_present": 4,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 1.0,
+      "mean_confidence_overall": 0.2,
+      "confidence": 0.2,
+      "per_episode_confidence": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "domain": "ground",
+      "description": "Ground weapons are discharged within effective engagement distance (< 80% maximum range).",
+      "evidence_snippets": [
+        {
+          "disciplined_shots": 35,
+          "total_ground_shots": 35,
+          "discipline_rate": 1.0
+        },
+        {
+          "disciplined_shots": 35,
+          "total_ground_shots": 35,
+          "discipline_rate": 1.0
+        }
+      ]
+    },
+    "standoff_engagement": {
+      "detected": true,
+      "prevalence": 0.7,
+      "episodes_present": 14,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 1.0,
+      "mean_confidence_overall": 0.7,
+      "confidence": 0.7,
+      "per_episode_confidence": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0
+      ],
+      "domain": "sea",
+      "description": "Naval vessels discharge anti-surface munitions while remaining at standoff distances (> 60% range).",
+      "evidence_snippets": [
+        {
+          "mean_separation_km": 32.81419355084099,
+          "evaluated": "trajectory_proximity"
+        },
+        {
+          "mean_separation_km": 43.88623700781232,
+          "evaluated": "trajectory_proximity"
+        }
+      ]
+    },
+    "screen_formation": {
+      "detected": false,
+      "prevalence": 0.0,
+      "episodes_present": 0,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 0.0,
+      "mean_confidence_overall": 0.0,
+      "confidence": 0.0,
+      "per_episode_confidence": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "domain": "sea",
+      "description": "Surface ships position along a coordinated screening barrier or line formation.",
+      "evidence_snippets": []
+    },
+    "evasive_maneuver": {
+      "detected": false,
+      "prevalence": 0.0,
+      "episodes_present": 0,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 0.0,
+      "mean_confidence_overall": 0.07563093425308764,
+      "confidence": 0.07563093425308764,
+      "per_episode_confidence": [
+        0.0,
+        0.0,
+        0.11635528346630508,
+        0.11635528346628732,
+        0.11635528346628732,
+        0.11635528346628732,
+        0.11635528346628732,
+        0.11635528346628732,
+        0.11635528346628732,
+        0.11635528346628732,
+        0.11635528346628732,
+        0.11635528346628732,
+        0.0,
+        0.11635528346628732,
+        0.0,
+        0.0,
+        0.11635528346628732,
+        0.0,
+        0.0,
+        0.11635528346628732
+      ],
+      "domain": "sea",
+      "description": "Naval vessels execute sharp rudder changes (> 0.5 rad/s) when in proximity to hostile assets.",
+      "evidence_snippets": []
+    },
+    "air_ground_coordination": {
+      "detected": false,
+      "prevalence": 0.0,
+      "episodes_present": 0,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 0.0,
+      "mean_confidence_overall": 0.0,
+      "confidence": 0.0,
+      "per_episode_confidence": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "domain": "cross",
+      "description": "Air agents fly close support profiles (< 5 km) near enemy targets actively engaged by ground units.",
+      "evidence_snippets": []
+    },
+    "sead_support": {
+      "detected": true,
+      "prevalence": 0.4,
+      "episodes_present": 8,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 0.8784722222222222,
+      "mean_confidence_overall": 0.3913888888888889,
+      "confidence": 0.3913888888888889,
+      "per_episode_confidence": [
+        0.75,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.4,
+        0.5,
+        0.4,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.7777777777777778,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "domain": "cross",
+      "description": "Air agents strike or suppress adversary air defense nodes preceding ground border ingress.",
+      "evidence_snippets": [
+        {
+          "early_air_penetrations": 2,
+          "mode": "offensive_air_sweep"
+        },
+        {
+          "sead_strikes": 35,
+          "total_air_engagements": 35
+        }
+      ]
+    },
+    "maritime_patrol": {
+      "detected": true,
+      "prevalence": 1.0,
+      "episodes_present": 20,
+      "total_episodes": 20,
+      "mean_confidence_when_present": 1.0,
+      "mean_confidence_overall": 1.0,
+      "confidence": 1.0,
+      "per_episode_confidence": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "domain": "cross",
+      "description": "Naval assets hold station along the maritime contested zone boundary (< 30 km).",
+      "evidence_snippets": [
+        {
+          "patrol_steps": 35,
+          "total_steps": 35,
+          "corridor_dwell_ratio": 1.0
+        },
+        {
+          "patrol_steps": 35,
+          "total_steps": 35,
+          "corridor_dwell_ratio": 1.0
+        }
+      ]
+    }
+  },
+  "acceptance_verdict": "FAIL",
+  "episodes_analyzed": 20
+}
