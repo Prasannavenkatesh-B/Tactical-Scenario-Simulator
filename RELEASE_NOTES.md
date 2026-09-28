@@ -5,6 +5,7 @@
 **Prepared for:** Defence Research & Development Organisation (DRDO), Ministry of Defence, Government of India  
 **Coordinating Laboratory:** Aeronautical Development Establishment (ADE), Bengaluru  
 **Release Date:** September 2026  
+**Deliverable SHA-256:** `ee2bc6ff1e20d99afb21535bc243e6fb0210c9f10f90ee470de0423f5409352c`  
 **System Status:** **10/10 Architectural Layers Complete | 421 Automated Tests Passing | Type-Safe**
 
 ---
@@ -95,6 +96,10 @@ The initial 5-iteration dry-run checkpoint (`checkpoint_final_iter_00010.pt`) ac
 ### Packaging Scripts (`scripts/`)
 - `generate_api_docs.py`: Auto-generates `docs/API_REFERENCE.md` from FastAPI app.
 - `generate_final_package.py`: Automated artifact verification and bundle creation into `deliverable.zip`.
+
+### Deliverable Package Integrity & Checksum
+- **Archive:** `deliverable.zip`
+- **SHA256:** `ee2bc6ff1e20d99afb21535bc243e6fb0210c9f10f90ee470de0423f5409352c`
 
 ---
 
